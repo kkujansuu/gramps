@@ -74,7 +74,7 @@ class GenerateCitations(tool.BatchTool):
         tool.BatchTool.__init__(self, dbstate, user, options_class, name)
         self.total_notes = 0
 
-        self.regex_narc = re.compile("(.+) - (.+), jakso (.+); Kansallisarkisto: (.+) / Viitattu (.+)")  # now I have two problems
+        self.regex_narc = re.compile("(.+?) - (.+?), jakso (.+); Kansallisarkisto: (.+) / Viitattu (.+)")  # now I have two problems
 
         # modified from /usr/lib/python3/dist-packages/gramps/plugins/db/bsddb/read.py
         self.primary_objects = {
