@@ -17,6 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+# generatecitations.py: 2018-2019 kari.kujansuu@gmail.com
 
 """Tools/Database Processing/Generate citations from event notes"""
 from collections import defaultdict
@@ -159,6 +160,8 @@ class GenerateCitations(tool.BatchTool):
         if m: return m
         m = self.match_svar(line)
         if m: return m
+        m = self.match_kansalliskirjasto(line)
+        if m: return m
         return None
         
     def match_narc(self,line):
@@ -205,6 +208,23 @@ class GenerateCitations(tool.BatchTool):
         url = "https://sok.riksarkivet.se/bildvisning/" + bildid
         date = time.strftime("%d.%m.%Y",time.localtime(time.time()))
         details = "SVAR: {} / Viitattu {}".format(url,date)
+        return Match(line,reponame,sourcetitle,citationpage,details,url,date)
+
+#Vasabladet, 18.11.1911, nro 138, s. 4
+#https://digi.kansalliskirjasto.fi/sanomalehti/binding/1340877?page=4
+#Kansalliskirjaston Digitoidut aineistot
+    def match_kansalliskirjasto(self,line):
+        lines = line.splitlines()
+        self.log(repr(lines))
+        if lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
+        i = lines[0].find(",")
+        if i < 0: return None
+        sourcetitle = lines[0][:i].strip()
+        citationpage = lines[0][i+1:].strip()
+        reponame = lines[2]
+        url = lines[1]
+        date = time.strftime("%d.%m.%Y",time.localtime(time.time()))
+        details = "Kansalliskirjasto: {} / Viitattu {}".format(url,date)
         return Match(line,reponame,sourcetitle,citationpage,details,url,date)
         
     def yield_objects(self,step):
@@ -383,4 +403,3 @@ class GenerateCitationsOptions(tool.ToolOptions):
 
     def __init__(self, name, person_id=None):
         tool.ToolOptions.__init__(self, name, person_id)
-
