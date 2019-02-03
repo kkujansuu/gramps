@@ -150,17 +150,17 @@ class GenerateCitations(tool.BatchTool):
     def match(self,note):
         notelines = note.get().splitlines()
         if len(notelines) == 0: return None
-        line = notelines[0]
-        return self.matchline(line)
+        return self.matchline(notelines)
 
-    def matchline(self,line):
+    def matchline(self,notelines):
+        line = notelines[0]
         m = self.match_narc(line)
         if m: return m
         m = self.match_sshy(line)
         if m: return m
         m = self.match_svar(line)
         if m: return m
-        m = self.match_kansalliskirjasto(line)
+        m = self.match_kansalliskirjasto(notelines)
         if m: return m
         return None
         
@@ -213,8 +213,7 @@ class GenerateCitations(tool.BatchTool):
 #Vasabladet, 18.11.1911, nro 138, s. 4
 #https://digi.kansalliskirjasto.fi/sanomalehti/binding/1340877?page=4
 #Kansalliskirjaston Digitoidut aineistot
-    def match_kansalliskirjasto(self,line):
-        lines = line.splitlines()
+    def match_kansalliskirjasto(self,lines):
         self.log(repr(lines))
         if len(lines) < 3 or lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
         i = lines[0].find(",")
@@ -225,7 +224,7 @@ class GenerateCitations(tool.BatchTool):
         url = lines[1]
         date = time.strftime("%d.%m.%Y",time.localtime(time.time()))
         details = "Kansalliskirjasto: {} / Viitattu {}".format(url,date)
-        return Match(line,reponame,sourcetitle,citationpage,details,url,date)
+        return Match(lines,reponame,sourcetitle,citationpage,details,url,date)
         
     def yield_objects(self,step):
         for classname,funcs in self.primary_objects.items():
