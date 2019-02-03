@@ -149,7 +149,7 @@ class GenerateCitations(tool.BatchTool):
 
     def match(self,note):
         notelines = note.get().splitlines()
-        if len(notelines) != 1: return None
+        if len(notelines) == 0: return None
         line = notelines[0]
         return self.matchline(line)
 
@@ -317,7 +317,10 @@ class GenerateCitations(tool.BatchTool):
 
                     obj.citations.append(citation)
                     obj.notes.append(notehandle)
-                    notes_to_remove[notehandle] = m
+                    
+                    notelines = note.get().splitlines()
+                    if len(notelines) == 1:
+                        notes_to_remove[notehandle] = m
                 if obj.notes: objects.append(obj)
 
             with DbTxn(_("Add citations"), self.db) as trans:
@@ -359,7 +362,8 @@ class GenerateCitations(tool.BatchTool):
                         citations_added += 1
 
                     for notehandle in obj.notes:
-                        obj.remove_note(notehandle)
+                        if notehandle in notes_to_remove:
+                            obj.remove_note(notehandle)
                     
                     commit_func = self.primary_objects[obj.primary_object_class]['commit_func']
                     commit_func(obj.primary_object, trans)
