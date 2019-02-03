@@ -148,8 +148,8 @@ class GenerateCitations(tool.BatchTool):
         print(msg)
 
     def match(self,note):
-        notelines = note.get_text_data_list()
-        if len(notelines) == 0: return None
+        notelines = note.get().splitlines()
+        if len(notelines) != 1: return None
         line = notelines[0]
         return self.matchline(line)
 
