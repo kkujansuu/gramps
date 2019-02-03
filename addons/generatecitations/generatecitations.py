@@ -216,7 +216,7 @@ class GenerateCitations(tool.BatchTool):
     def match_kansalliskirjasto(self,line):
         lines = line.splitlines()
         self.log(repr(lines))
-        if lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
+        if len(lines) < 3 or lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
         i = lines[0].find(",")
         if i < 0: return None
         sourcetitle = lines[0][:i].strip()
