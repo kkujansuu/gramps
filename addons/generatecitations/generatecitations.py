@@ -213,6 +213,15 @@ class GenerateCitations(tool.BatchTool):
 #Vasabladet, 18.11.1911, nro 138, s. 4
 #https://digi.kansalliskirjasto.fi/sanomalehti/binding/1340877?page=4
 #Kansalliskirjaston Digitoidut aineistot
+
+#Mikkeli, 01.02.1901, nr 13, s. 1
+#https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
+#Nationalbibliotekets digitala samlingar
+
+#Mikkeli, 01.02.1901, no. 13, p. 1
+#https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
+#National Library's Digital Collections
+
     def match_kansalliskirjasto(self,lines):
         self.log(repr(lines))
         if len(lines) < 3 or lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
