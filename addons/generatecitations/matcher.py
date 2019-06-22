@@ -45,7 +45,7 @@ def match_narc(line):
 
 def match_sshy(line):
 # Tampereen tuomiokirkkoseurakunta - rippikirja, 1878-1887 (MKO166-181 I Aa:17) > 39: Clayhills tjenstespersoner; SSHY: http://www.sukuhistoria.fi/sshy/sivut/jasenille/paikat.php?bid=18233&pnum=39 / Viitattu 6.11.2018
-    regex_sshy = re.compile("(.+) - (.+) > (.+): (.*); SSHY: (.+) / Viitattu (.+)")  # now I have two problems
+    regex_sshy = re.compile("(.+) - (.+) > (.+?): (.*); SSHY: (.+) / Viitattu (.+)")  # now I have two problems
     m = regex_sshy.match(line)
     if not m: return None
     reponame = m.group(1)            
