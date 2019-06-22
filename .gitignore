@@ -1,2 +1,6 @@
 /.pydevproject
+<<<<<<< HEAD
 __pycache__
+=======
+__pycache__
+>>>>>>> refs/heads/testing
