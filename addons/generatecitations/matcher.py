@@ -50,11 +50,7 @@ def match_sshy(line):
     if not m: return None
     reponame = m.group(1)            
     sourcetitle = "{} {}".format(reponame,m.group(2))
-    desc = m.group(4).strip()
-    if desc:
-        citationpage = "kuva {}: {}".format(m.group(3),desc)
-    else:
-        citationpage = "kuva {}".format(m.group(3))
+    citationpage = m.group(4).strip()
     url = m.group(5)
     date = m.group(6)
     details = "SSHY: {} / Viitattu {}".format(url,date)
@@ -77,19 +73,19 @@ def match_svar(line):
     details = "SVAR: {} / Viitattu {}".format(url,date)
     return Match(line,reponame,sourcetitle,citationpage,details,url,date)
 
-#Vasabladet, 18.11.1911, nro 138, s. 4
-#https://digi.kansalliskirjasto.fi/sanomalehti/binding/1340877?page=4
-#Kansalliskirjaston Digitoidut aineistot
-
-#Mikkeli, 01.02.1901, nr 13, s. 1
-#https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
-#Nationalbibliotekets digitala samlingar
-
-#Mikkeli, 01.02.1901, no. 13, p. 1
-#https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
-#National Library's Digital Collections
-
 def match_kansalliskirjasto(lines):
+    #Vasabladet, 18.11.1911, nro 138, s. 4
+    #https://digi.kansalliskirjasto.fi/sanomalehti/binding/1340877?page=4
+    #Kansalliskirjaston Digitoidut aineistot
+    
+    #Mikkeli, 01.02.1901, nr 13, s. 1
+    #https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
+    #Nationalbibliotekets digitala samlingar
+    
+    #Mikkeli, 01.02.1901, no. 13, p. 1
+    #https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
+    #National Library's Digital Collections
+
     if len(lines) < 3 or lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
     i = lines[0].find(",")
     if i < 0: return None
