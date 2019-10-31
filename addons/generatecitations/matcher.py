@@ -86,7 +86,14 @@ def match_kansalliskirjasto(lines):
     #https://digi.kansalliskirjasto.fi/sanomalehti/binding/670567?page=1
     #National Library's Digital Collections
 
-    if len(lines) < 3 or lines[2] != "Kansalliskirjaston Digitoidut aineistot": return None
+    if len(lines) < 3 or lines[2] not in {
+        "Kansalliskirjaston Digitoidut aineistot", # vanha versio?
+        "Kansalliskirjaston digitaaliset aineistot",
+        "Nationalbibliotekets digitala samlingar",
+        "National Library's Digital Collections",
+    }: 
+        return None
+    
     i = lines[0].find(",")
     if i < 0: return None
     sourcetitle = lines[0][:i].strip()

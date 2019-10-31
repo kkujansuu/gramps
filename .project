@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>gramps</name>
-<<<<<<< HEAD
 	<comment>Gramps addons</comment>
-=======
-	<comment></comment>
->>>>>>> refs/heads/testing
 	<projects>
 	</projects>
 	<buildSpec>
