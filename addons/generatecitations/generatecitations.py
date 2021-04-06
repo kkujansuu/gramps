@@ -171,21 +171,18 @@ class GenerateCitations(tool.BatchTool):
         return sources
                                 
     def run(self):
-        objects = []
-        skipped = 0
-        total_objects = 0
         total_notes = 0
-        matching_notes = 0
-        citations_added = 0
-        sources_added = 0
-        repos_added = 0
         with self.user.progress(
-                _("Generating citations"), '',
-                self.db.get_total()) as step:
+                    _("Generating citations"), '',
+                    self.db.get_total()) as step:
 
             repos = self.get_repos()
             sources = self.get_sources()
             notes_to_remove = {}
+            objects = []
+            skipped = 0
+            total_objects = 0
+            matching_notes = 0
             for classname,obj in self.yield_objects(step):
                 total_objects += 1
                 obj.classname = classname
@@ -194,7 +191,7 @@ class GenerateCitations(tool.BatchTool):
                 current_citations = None
                 for note,m,notehandle in self.find_matching_notes(obj):
                     matching_notes += 1
-                        
+
                     # get a list of current citations; this is in the loop to avoid computing the set for all objects
                     if current_citations is None:
                         current_citations = set()
@@ -202,7 +199,7 @@ class GenerateCitations(tool.BatchTool):
                             citation = self.db.get_citation_from_handle(h)
                             page = citation.get_page()
                             current_citations.add(page)
-                        
+
                     if m.citationpage in current_citations: 
                         skipped += 1
                         continue # already has this citation, skip
@@ -220,19 +217,22 @@ class GenerateCitations(tool.BatchTool):
 
                     obj.citations.append(citation)
                     obj.notes.append(notehandle)
-                    
+
                     notelines = note.get().splitlines()
                     if len(notelines) == 1:
                         notes_to_remove[notehandle] = m
                 if obj.notes: objects.append(obj)
 
+            citations_added = 0
+            sources_added = 0
+            repos_added = 0
             with DbTxn(_("Add citations"), self.db) as trans:
                 for obj in objects:
                     self.log("Object {}".format(obj))
                     for citation in obj.citations:
                         source = citation.source
                         repo = source.repo
-                        
+
                         citation_handle = self.db.add_citation(citation, trans)
                         source_handle = self.db.add_source(source, trans)
                         repo_handle = self.db.add_repository(repo, trans)
@@ -255,7 +255,7 @@ class GenerateCitations(tool.BatchTool):
                         note_handle = self.db.add_note(note, trans)
                         citation.add_note(note_handle)
                         citation.newnote = note
-                        
+
                         citation.set_reference_handle(source_handle)
                         if not source.has_repo_reference(repo_handle):
                             reporef = RepoRef()
@@ -267,7 +267,7 @@ class GenerateCitations(tool.BatchTool):
                     for notehandle in obj.notes:
                         if notehandle in notes_to_remove:
                             obj.remove_note(notehandle)
-                    
+
                     commit_func = self.primary_objects[obj.primary_object_class]['commit_func']
                     commit_func(obj.primary_object, trans)
                     for citation in obj.citations:
@@ -280,8 +280,12 @@ class GenerateCitations(tool.BatchTool):
                     self.log("Removing note: {} {}".format(repr(notehandle),m.line))
                     self.db.remove_note(notehandle, trans)
 
-            log = []
-            log.append(_("Total objects processed: {total_objects}").format(total_objects=total_objects))
+            log = [
+                _("Total objects processed: {total_objects}").format(
+                    total_objects=total_objects
+                )
+            ]
+
             log.append("- " + _("Total notes: {total_notes}").format(total_notes=self.total_notes))
             log.append("- " + _("Matching notes: {matching_notes}").format(matching_notes=matching_notes))
             log.append("- " + _("Unique matching notes: {unique_matching_notes}").format(unique_matching_notes=len(notes_to_remove)))
