@@ -20,6 +20,7 @@
 # generatecitations.py: 2018-2019 kari.kujansuu@gmail.com
 
 """Tools/Database Processing/Generate citations from event notes"""
+# xxx
 from collections import defaultdict
 import pprint
 import traceback
