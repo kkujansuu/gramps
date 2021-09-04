@@ -41,22 +41,22 @@ from gramps.gui.managedwindow import ManagedWindow
 from gramps.gui.plug import tool
 from gramps.gui.views.listview import ListView
 
-from gramps.gen.db import DbTxn
-from gramps.gen.display.name import displayer as name_displayer
 
 from gramps.gen.const import CUSTOM_FILTERS
+from gramps.gen.datehandler import displayer
+from gramps.gen.db import DbTxn
+from gramps.gen.display.name import displayer as name_displayer
+from gramps.gen.errors import FilterError
 from gramps.gen.filters._filterlist import FilterList
 from gramps.gen.filters import reload_custom_filters 
 
-
 from gramps.gen.utils.string import conf_strings
 from gramps.gui.widgets import DateEntry
-from gramps.gen.datehandler import displayer
 
 from gramps.gui.editors.filtereditor import MyPlaces, MyInteger, MyLesserEqualGreater
 from gramps.gui.editors.filtereditor import MyID, MySource, MyFilters
 from gramps.gui.editors.filtereditor import MySelect, MyBoolean, MyList
-from gramps.gui.editors.filtereditor import MyEntry
+from gramps.gui.editors.filtereditor import MyEntry, ShowResults
 from gramps.gui.editors.filtereditor import _name2typeclass
 
 from gramps.gen.const import GRAMPS_LOCALE as glocale
@@ -148,13 +148,17 @@ class Tool(tool.Tool):
         hdr.set_markup("<b>" + _("Select a filter") + "</b>")
         dialog.vbox.pack_start(hdr, False, False, 5)
 
+        self.execute_button = dialog.add_button(_("Test run"), Gtk.ResponseType.OK)
+        self.execute_button.set_sensitive(False)
+        self.execute_button.connect("clicked", self.execute_clicked)
+
         self.update_button = dialog.add_button(_("Update"), Gtk.ResponseType.OK)
         self.update_button.set_sensitive(False)
         self.update_button.connect("clicked", self.update_clicked)
+
         close_button = dialog.add_button(_("Close"), Gtk.ResponseType.CANCEL)
         close_button.connect("clicked", self.close_clicked)
-        dialog.set_default_response(Gtk.ResponseType.OK)
-
+        
         self.filter_combo = self.MyCombo(self.filternames)
         category_combo = self.MyCombo(list(zip(self.categories, self.categories_translated)))
         #category_combo = self.MyCombo(self.categories)
@@ -195,15 +199,49 @@ class Tool(tool.Tool):
         if self.frame:
             self.frame.destroy()
             self.frame = None
+        self.execute_button.set_sensitive(False)
         self.update_button.set_sensitive(False)
         self.populate_filters(self.current_category)
 
     def get_color(self, level):
         return self.colors[level % len(self.colors)]
+
+    def get_all_handles(self, category):
+        # Why use iter for some and get for others?
+        if category == 'Person':
+            return self.db.iter_person_handles()
+        elif category == 'Family':
+            return self.db.iter_family_handles()
+        elif category == 'Event':
+            return self.db.get_event_handles()
+        elif category == 'Source':
+            return self.db.get_source_handles()
+        elif category == 'Citation':
+            return self.db.get_citation_handles()
+        elif category == 'Place':
+            return self.db.iter_place_handles()
+        elif category == 'Media':
+            return self.db.get_media_handles()
+        elif category == 'Repository':
+            return self.db.get_repository_handles()
+        elif category == 'Note':
+            return self.db.get_note_handles()       
+         
+    def execute_clicked(self, _widget):
+        self.current_category
+        try:
+            filter = self.getfilter(self.current_category, self.current_filtername)
+            handle_list = filter.apply(self.db, self.get_all_handles(self.current_category))
+        except FilterError as msg:
+            (msg1, msg2) = msg.messages()
+            ErrorDialog(msg1, msg2, parent=self.window)
+            return
+        ShowResults(self.db, self.uistate, self.track, handle_list,
+                    self.current_filtername,self.current_category)
         
     def update_clicked(self, _widget):
         self.update_params()
-        
+
     def close_clicked(self, _widget):
         self.dialog.destroy()
         self.dialog = None
@@ -480,6 +518,7 @@ class Tool(tool.Tool):
         except:
             traceback.print_exc()
             return
+        self.current_filtername = filtername
         if self.frame:
             self.frame.destroy()
         self.grid = self.MyGrid()
@@ -502,6 +541,7 @@ class Tool(tool.Tool):
         self.frame = frame2
         self.dialog.resize(1,1) # shrink to minimum size needed    
         self.dialog.show_all()
+        self.execute_button.set_sensitive(True)
         self.update_button.set_sensitive(True)
 
     class MyWidget:
