@@ -116,6 +116,8 @@ class Tool(tool.Tool):
              Gdk.RGBA(0.9,0.99,0.99, 0.999),
              Gdk.RGBA(0.99,0.9,0.99, 0.999),
         ]
+        self.use_colors = True
+
         self.dialog = self.create_gui()
 
     def populate_filters(self, category):
@@ -141,8 +143,7 @@ class Tool(tool.Tool):
         for filter in self.filters.values():
             self.filternames.append(filter.get_name())
 
-        dialog = Gtk.Dialog(title=_("Filter parameters"), parent=None)
-                            #flags=Gtk.DialogFlags.MODAL)
+        dialog = Gtk.Dialog(title=_("Filter parameters"), parent=self.uistate.window)
 
         hdr = Gtk.Label()
         hdr.set_markup("<b>" + _("Select a filter") + "</b>")
@@ -499,7 +500,8 @@ class Tool(tool.Tool):
         lbl.set_markup(caption)
         frame2 = Gtk.Frame()
         frame2.set_label_widget(lbl)
-        frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(level))
+        if self.use_colors:
+            frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(level))
         
         grid.add(frame2)
         grid2 = self.MyGrid()
@@ -533,7 +535,8 @@ class Tool(tool.Tool):
 
         frame2 = Gtk.Frame()
         frame2.set_label_widget(lbl)
-        frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(0))
+        if self.use_colors:
+            frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(0))
         frame2.add(self.grid)
 
         self.addfilter(self.grid, self.current_category, filtername, 1)
