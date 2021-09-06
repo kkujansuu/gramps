@@ -29,15 +29,21 @@ The first dropdown list contains all categories, the default is the current cate
 
 ![FilterParams](FilterParams2.png)
 
-If a filter is using another filter then the contents of that filter is also shown in an embedded frame. The colors are intended to help in visualizing the structure.
+If a filter is using another filter then the contents of that filter is also shown in an embedded frame. The colors are intended to help in visualizing the structure (unfortunately this color scheme does not work properly with a dark color theme).
 
-Any parameters are shown in a similar manner as in the regular filter rule editor. Change any parameters and press "Update" - the new values are stored permanently with the filter.
+Any parameters are shown in a similar manner as in the regular filter rule editor. Change any parameters and press "Test run" - this will apply the filter to all objects in the relevant category and display the result, i.e. objects matching the filter, in a separate window:
+
+![FilterParams](FilterParams-testrun.png)
+
+![FilterParams](FilterParams-testrun-results.png)
+
+The changed parameter values are not stored. If you want to store the parameter values permanently the press the "Save" button. However, the changed values are available as long as you do not move to another filter or close the tool. This means that if you run the same filter from the sidebar then the changed parameters are in effect.
 
 This tool does not otherwise allow editing of the filters or rules (like adding or deleting filters or rules). For those you have to use the regular filter editor. If filters are changed then you should close and reopen the tool - the filter information is not updated dynamically.
 
 #### Common usage tip
 
-A convenient way to use the tool is to open the same filter simultaneously in this tool and in the sidebar filter gramplet. Any parameter change made using this tool is then immediately used by the sidebar filter:
+One way to use the tool is to open the same filter simultaneously in this tool and in the sidebar filter gramplet. Any parameter change made using this tool is then immediately used by the sidebar filter (but not stored permanently as noted above).
 
 ![FilterParams](FilterParams3.png)
 
@@ -72,3 +78,5 @@ If a custom filter has a comment then the comment is shown as a tooltip when one
 The "invert" check box indicates the option "Return values that do not match the filter rules".
 
 The "All/At least one/Exactly one rule must apply" selection appears only if there actually are multiple rules in a filter.
+
+
