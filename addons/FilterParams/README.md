@@ -57,7 +57,7 @@ A filter can contain the same ID parameter in several places. For example, this 
 
 ![FilterParams-grandparents](FilterParams-grandparents.png)
 
-The ID of the specified person needs to be in two places in the filter. The tool recognizes this and "links" those parameters with each other. Only the first parameter is editable - the other is disabled and dimmed. If you change the first one then the same value is automatically propagated to the other one. The update is also done immediately and you do not need to press "Update".
+The ID of the specified person needs to be in two places in the filter. The tool recognizes this and "links" those parameters with each other. Only the first parameter is editable - the other is disabled and dimmed. If you change the first one then the same value is automatically propagated to the other one. 
 
 The linking happens only if the ID values are initially the same.
 
