@@ -238,6 +238,8 @@ class Tool(tool.Tool):
             """
             def __init__(self, user):
                 self.user = user
+                self.uistate = user.uistate
+                self.parent = user.parent
             def begin_progress(self, title, message, steps):
                 # Code copied from gramps/gui/user.py
                 from gramps.gui.utils import ProgressMeter
