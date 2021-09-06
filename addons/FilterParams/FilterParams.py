@@ -258,7 +258,7 @@ class Tool(tool.Tool):
 
         # code copied from gramps/gui/editors/filtereditor.py (test_clicked)
         try:
-            
+            self.update_params()
             filter = self.getfilter(self.current_category, self.current_filtername)
             handle_list = filter.apply(self.db, self.get_all_handles(self.current_category), user=user)
         except StopIteration:
