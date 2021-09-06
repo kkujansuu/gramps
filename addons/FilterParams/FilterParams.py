@@ -23,6 +23,7 @@ import re
 import traceback
 from collections import defaultdict
 from pprint import pprint
+from imp import reload
 
 try:
     from typing import List, Tuple, Optional, Iterator, Generator, Any, Callable
@@ -40,15 +41,16 @@ from gramps.gui.glade import Glade
 from gramps.gui.managedwindow import ManagedWindow
 from gramps.gui.plug import tool
 from gramps.gui.views.listview import ListView
-
+from gramps.gui.user import User
 
 from gramps.gen.const import CUSTOM_FILTERS
 from gramps.gen.datehandler import displayer
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.errors import FilterError
-from gramps.gen.filters._filterlist import FilterList
+#from gramps.gen.filters._filterlist import FilterList
 from gramps.gen.filters import reload_custom_filters 
+import gramps.gen.filters 
 
 from gramps.gen.utils.string import conf_strings
 from gramps.gui.widgets import DateEntry
@@ -58,6 +60,7 @@ from gramps.gui.editors.filtereditor import MyID, MySource, MyFilters
 from gramps.gui.editors.filtereditor import MySelect, MyBoolean, MyList
 from gramps.gui.editors.filtereditor import MyEntry, ShowResults
 from gramps.gui.editors.filtereditor import _name2typeclass
+from gramps.gui.editors.filtereditor import EditFilter
 
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 try:
@@ -93,8 +96,8 @@ class Tool(tool.Tool):
         self.uistate = user.uistate
         self.dbstate = dbstate
         self.track = []
-        self.filterdb = FilterList(CUSTOM_FILTERS)
-        self.filterdb.load()
+        #self.filterdb = FilterList(CUSTOM_FILTERS)
+        #self.filterdb.load()
         self.frame = None
         self.categories = [
             "Person",
@@ -121,11 +124,11 @@ class Tool(tool.Tool):
         self.dialog = self.create_gui()
 
     def populate_filters(self, category):
-        self.filterdb = FilterList(CUSTOM_FILTERS)
+        self.filterdb = gramps.gen.filters.CustomFilters
         self.filterdb.load()
-        self.filters = self.filterdb.get_filters_dict(category)
+        filters = self.filterdb.get_filters_dict(category)
         self.filternames = []
-        for filter in self.filters.values():
+        for filter in filters.values():
             self.filternames.append(filter.get_name())
         self.filter_combo.widget.get_model().clear()
         self.filter_combo.fill_combo(self.filternames)
@@ -139,9 +142,6 @@ class Tool(tool.Tool):
         if category.endswith("ies"): category = category[0:-3] + "y"
         if category.endswith("s"): category = category[0:-1]
         self.current_category = category    
-        self.filters = self.filterdb.get_filters_dict(category)
-        for filter in self.filters.values():
-            self.filternames.append(filter.get_name())
 
         dialog = Gtk.Dialog(title=_("Filter parameters"), parent=self.uistate.window)
 
@@ -152,17 +152,19 @@ class Tool(tool.Tool):
         self.execute_button = dialog.add_button(_("Test run"), Gtk.ResponseType.OK)
         self.execute_button.set_sensitive(False)
         self.execute_button.connect("clicked", self.execute_clicked)
+        self.execute_button.set_tooltip_text(_("Runs the filter - the parameters are not saved permanently"))
 
-        self.update_button = dialog.add_button(_("Update"), Gtk.ResponseType.OK)
+        self.update_button = dialog.add_button(_("Save"), Gtk.ResponseType.OK)
         self.update_button.set_sensitive(False)
         self.update_button.connect("clicked", self.update_clicked)
+        self.update_button.set_tooltip_text(_("Saves the changes permanently"))
 
         close_button = dialog.add_button(_("Close"), Gtk.ResponseType.CANCEL)
         close_button.connect("clicked", self.close_clicked)
+        close_button.set_tooltip_text(_("Close the window - any changes are lost if you did not save"))
         
-        self.filter_combo = self.MyCombo(self.filternames)
+        self.filter_combo = self.MyCombo([])
         category_combo = self.MyCombo(list(zip(self.categories, self.categories_translated)))
-        #category_combo = self.MyCombo(self.categories)
 
         hbox = Gtk.HBox()
         lbl = Gtk.Label(_("Category") + ":")
@@ -174,7 +176,6 @@ class Tool(tool.Tool):
         lbl = Gtk.Label(_("Filter") + ":")
         hbox.pack_start(lbl, False, False, 5)
         hbox.pack_start(self.filter_combo.widget, False, False, 5)
-#        dialog.vbox.pack_start(self.filter_combo.widget, False, False, 5)
         dialog.vbox.pack_start(hbox, False, False, 5)
 
         self.box = Gtk.Box()
@@ -185,8 +186,9 @@ class Tool(tool.Tool):
         category_combo.widget.connect("changed", self.on_category_changed)
         if self.current_category not in self.categories:
             self.current_category = "Person"
+            
         category_combo.set_value(self.current_category)
-
+        dialog.connect("delete-event", lambda x, y: self.close_clicked(dialog))
         dialog.show_all()
         return dialog
 
@@ -208,6 +210,7 @@ class Tool(tool.Tool):
         return self.colors[level % len(self.colors)]
 
     def get_all_handles(self, category):
+        # method copied from gramps/gui/editors/filtereditor.py
         # Why use iter for some and get for others?
         if category == 'Person':
             return self.db.iter_person_handles()
@@ -229,27 +232,79 @@ class Tool(tool.Tool):
             return self.db.get_note_handles()       
          
     def execute_clicked(self, _widget):
-        self.current_category
+        class User2:
+            """
+            Helper class to provide a progress indicator (with cancel).
+            """
+            def __init__(self, user):
+                self.user = user
+            def begin_progress(self, title, message, steps):
+                # Code copied from gramps/gui/user.py
+                from gramps.gui.utils import ProgressMeter
+                self.user._progress = ProgressMeter(title, parent=self.user.parent, can_cancel=True)
+                if steps > 0:
+                    self.user._progress.set_pass(message, steps, ProgressMeter.MODE_FRACTION)
+                else:
+                    self.user._progress.set_pass(message, mode=ProgressMeter.MODE_ACTIVITY)
+            def step_progress(self):
+                res = self.user._progress.step()
+                if res:
+                    self.user.end_progress()
+                    raise StopIteration
+            def end_progress(self):
+                self.user.end_progress()
+
+        user = User2(self.user)
+
+        # code copied from gramps/gui/editors/filtereditor.py (test_clicked)
         try:
+            
             filter = self.getfilter(self.current_category, self.current_filtername)
-            handle_list = filter.apply(self.db, self.get_all_handles(self.current_category))
+            handle_list = filter.apply(self.db, self.get_all_handles(self.current_category), user=user)
+        except StopIteration:
+            return
         except FilterError as msg:
             (msg1, msg2) = msg.messages()
             ErrorDialog(msg1, msg2, parent=self.window)
             return
         ShowResults(self.db, self.uistate, self.track, handle_list,
                     self.current_filtername,self.current_category)
+
+    # methods copied from gramps/gui/editors/filtereditor.py
+    def add_new_filter(self, obj):
+        the_filter = GenericFilterFactory(self.current_category)()
+        EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
+                   the_filter, self.filterdb, update=None)
+
+    def edit_filter(self, obj):
+        store, node = self.clist.get_selected()
+        if node:
+            gfilter = self.clist.get_object(node)
+            EditFilter(self.namespace, self.dbstate, self.uistate, self.track,
+                       gfilter, self.filterdb, self.draw_filters)
+
+    def clone_filter(self, obj):
+        store, node = self.clist.get_selected()
+        if node:
+            old_filter = self.clist.get_object(node)
+            the_filter = GenericFilterFactory(self.namespace)(old_filter)
+            the_filter.set_name('')
+            EditFilter(self.namespace, self.dbstate, self.uistate, self.track,
+                       the_filter, self.filterdb, self.draw_filters)
+
         
     def update_clicked(self, _widget):
-        self.update_params()
+        #self.update_params()
+        self.filterdb.save()
 
     def close_clicked(self, _widget):
+        #print("FilterParams closing")
+        reload_custom_filters()  # so that our (non-saved) changes will be discared
         self.dialog.destroy()
         self.dialog = None
-
     
     def get_widgets(self,arglist,filtername):
-        # Code copied from gramps.gui.editors.filtereditor.py
+        # Code copied from gramps/gui/editors/filtereditor.py
         pos = 0
         tlist = []
         for v in arglist:
@@ -392,10 +447,11 @@ class Tool(tool.Tool):
                     rule.list[paramindex] = value
                 entry.set_text(value)
                 
-        self.filterdb.save()
-        reload_custom_filters()
+        #self.filterdb.save()
+        #reload_custom_filters()
 
     def getfilter(self, category, filtername):
+        #filters = self.filterdb.get_filters_dict(category)
         filters = self.filterdb.get_filters_dict(category)
         return filters.get(filtername)
 
@@ -520,6 +576,11 @@ class Tool(tool.Tool):
         except:
             traceback.print_exc()
             return
+
+        # load from xml file, any temporary changes are lost
+        reload_custom_filters()
+        self.filterdb = gramps.gen.filters.CustomFilters        
+
         self.current_filtername = filtername
         if self.frame:
             self.frame.destroy()
@@ -584,7 +645,6 @@ class Tool(tool.Tool):
             # type: () -> int
             return self.widget.get_value_as_int()
 
-#    class MyCombo(Gtk.ComboBoxText):
     class MyCombo():
         def __init__(self, entries, *, has_entry=False):
             # type: (List[str], bool) -> None
