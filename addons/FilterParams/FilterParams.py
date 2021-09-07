@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2021      Kari Kujansuu
+# Copyright (C) 2021      Gramps developers, Kari Kujansuu
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ import re
 import traceback
 from collections import defaultdict
 from pprint import pprint
-from imp import reload
 
 try:
     from typing import List, Tuple, Optional, Iterator, Generator, Any, Callable
@@ -48,7 +47,6 @@ from gramps.gen.datehandler import displayer
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.errors import FilterError
-#from gramps.gen.filters._filterlist import FilterList
 from gramps.gen.filters import reload_custom_filters 
 import gramps.gen.filters 
 
@@ -234,27 +232,31 @@ class Tool(tool.Tool):
     def execute_clicked(self, _widget):
         class User2:
             """
-            Helper class to provide a progress indicator (with cancel).
+            Helper class to provide "can_cancel" functionality to 
+            the progress indicator used by gramps.gen.filters._genericfilter.GenericFilter.apply().
+            Replaces the gramps.gui.user.User class for this case.
+            Code copied from gramps/gui/user.py.
             """
             def __init__(self, user):
-                self.user = user
+                self.parent = user.parent
                 self.uistate = user.uistate
                 self.parent = user.parent
             def begin_progress(self, title, message, steps):
-                # Code copied from gramps/gui/user.py
+                # Parameter "can_cancel" added to ProgressMeter creation.
                 from gramps.gui.utils import ProgressMeter
-                self.user._progress = ProgressMeter(title, parent=self.user.parent, can_cancel=True)
+                self._progress = ProgressMeter(title, parent=self.parent, can_cancel=True)
                 if steps > 0:
-                    self.user._progress.set_pass(message, steps, ProgressMeter.MODE_FRACTION)
+                    self._progress.set_pass(message, steps, ProgressMeter.MODE_FRACTION)
                 else:
-                    self.user._progress.set_pass(message, mode=ProgressMeter.MODE_ACTIVITY)
+                    self._progress.set_pass(message, mode=ProgressMeter.MODE_ACTIVITY)
             def step_progress(self):
-                res = self.user._progress.step()
+                res = self._progress.step()
                 if res:
-                    self.user.end_progress()
+                    self.end_progress()
                     raise StopIteration
             def end_progress(self):
-                self.user.end_progress()
+                self._progress.close()
+                self._progress = None
 
         user = User2(self.user)
 
