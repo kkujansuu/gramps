@@ -23,6 +23,7 @@ import re
 import traceback
 from collections import defaultdict
 from pprint import pprint
+from nis import cat
 
 try:
     from typing import List, Tuple, Optional, Iterator, Generator, Any, Callable
@@ -31,10 +32,43 @@ except:
  
 from gi.repository import Gtk, Gdk, GObject
 
+from gramps.gen.lib import Citation
+from gramps.gen.lib import Event
+from gramps.gen.lib import Family
+from gramps.gen.lib import Media
+from gramps.gen.lib import Note
 from gramps.gen.lib import Person
-from gramps.gen.utils.callman import CallbackManager
+from gramps.gen.lib import Place
+from gramps.gen.lib import Repository
+from gramps.gen.lib import Source
 
+from gramps.gui.dialog import QuestionDialog, ErrorDialog
+
+from gramps.gui.editors import EditCitation
+from gramps.gui.editors import EditEvent
+from gramps.gui.editors import EditFamily
+from gramps.gui.editors import EditMedia
+from gramps.gui.editors import EditNote
 from gramps.gui.editors import EditPerson
+from gramps.gui.editors import EditPlace
+from gramps.gui.editors import EditRepository
+from gramps.gui.editors import EditSource
+
+from gramps.gen.const import CUSTOM_FILTERS
+from gramps.gen.datehandler import displayer
+from gramps.gen.db import DbTxn
+from gramps.gen.display.name import displayer as name_displayer
+from gramps.gen.display.place import displayer as place_displayer
+
+from gramps.gen.errors import FilterError
+from gramps.gen.filters import reload_custom_filters, GenericFilterFactory
+from gramps.gen.filters.rules import MatchesFilterBase
+import gramps.gen.filters 
+
+from gramps.gen.utils.callman import CallbackManager
+from gramps.gen.utils.db import family_name
+from gramps.gen.utils.string import conf_strings
+
 from gramps.gui.dbguielement import DbGUIElement
 from gramps.gui.glade import Glade
 from gramps.gui.managedwindow import ManagedWindow
@@ -42,21 +76,12 @@ from gramps.gui.plug import tool
 from gramps.gui.views.listview import ListView
 from gramps.gui.user import User
 
-from gramps.gen.const import CUSTOM_FILTERS
-from gramps.gen.datehandler import displayer
-from gramps.gen.db import DbTxn
-from gramps.gen.display.name import displayer as name_displayer
-from gramps.gen.errors import FilterError
-from gramps.gen.filters import reload_custom_filters 
-import gramps.gen.filters 
-
-from gramps.gen.utils.string import conf_strings
 from gramps.gui.widgets import DateEntry
 
 from gramps.gui.editors.filtereditor import MyPlaces, MyInteger, MyLesserEqualGreater
 from gramps.gui.editors.filtereditor import MyID, MySource, MyFilters
 from gramps.gui.editors.filtereditor import MySelect, MyBoolean, MyList
-from gramps.gui.editors.filtereditor import MyEntry, ShowResults
+from gramps.gui.editors.filtereditor import MyEntry #, ShowResults
 from gramps.gui.editors.filtereditor import _name2typeclass
 from gramps.gui.editors.filtereditor import EditFilter
 
@@ -90,12 +115,11 @@ class Tool(tool.Tool):
     def __init__(self, dbstate, user, options_class, name, callback=None):
         # type: (Any, Any, Any, str, Callable) -> None
         tool.Tool.__init__(self, dbstate, options_class, name)
+        #ManagedWindow.__init__(self, user.uistate, [], self.__class__, modal=False)
         self.user = user
         self.uistate = user.uistate
         self.dbstate = dbstate
         self.track = []
-        #self.filterdb = FilterList(CUSTOM_FILTERS)
-        #self.filterdb.load()
         self.frame = None
         self.categories = [
             "Person",
@@ -119,19 +143,28 @@ class Tool(tool.Tool):
         ]
         self.use_colors = True
 
+        self.filterdb = gramps.gen.filters.CustomFilters
         self.dialog = self.create_gui()
+        #self.set_window(self.dialog, None, _("Filter Parameters"))
+
+    def build_menu_names(self, obj): 
+        """
+        Needed by ManagedWindow to build the Windows menu
+        """
+        return ('FilterParams','FilterParams')
 
     def populate_filters(self, category):
         self.filterdb = gramps.gen.filters.CustomFilters
         self.filterdb.load()
         filters = self.filterdb.get_filters_dict(category)
         self.filternames = []
+        self.combo_filters.get_model().clear()
         for filter in filters.values():
-            self.filternames.append(filter.get_name())
-        self.filter_combo.widget.get_model().clear()
-        self.filter_combo.fill_combo(self.filternames)
+            filtername = filter.get_name()
+            self.filternames.append(filtername)
+            self.combo_filters.append_text(filtername)
         if len(self.filternames) > 0: 
-            self.filter_combo.widget.set_active(0)
+            self.combo_filters.set_active(0)
         
     def create_gui(self):
         self.filternames = []
@@ -141,54 +174,54 @@ class Tool(tool.Tool):
         if category.endswith("s"): category = category[0:-1]
         self.current_category = category    
 
-        dialog = Gtk.Dialog(title=_("Filter parameters"), parent=self.uistate.window)
+        glade = Glade(toplevel='dialog1')
+        self.dialog = glade.toplevel
+        combo_categories = glade.get_child_object("combo_categories")
+        self.combo_filters = glade.get_child_object("combo_filters")
+        self.add_button = glade.get_child_object("add_button")
+        self.edit_button = glade.get_child_object("edit_button")
+        self.delete_button = glade.get_child_object("delete_button")
 
-        hdr = Gtk.Label()
-        hdr.set_markup("<b>" + _("Select a filter") + "</b>")
-        dialog.vbox.pack_start(hdr, False, False, 5)
-
-        self.execute_button = dialog.add_button(_("Test run"), Gtk.ResponseType.OK)
-        self.execute_button.set_sensitive(False)
-        self.execute_button.connect("clicked", self.execute_clicked)
-        self.execute_button.set_tooltip_text(_("Runs the filter - the parameters are not saved permanently"))
-
-        self.update_button = dialog.add_button(_("Save"), Gtk.ResponseType.OK)
-        self.update_button.set_sensitive(False)
-        self.update_button.connect("clicked", self.update_clicked)
-        self.update_button.set_tooltip_text(_("Saves the changes permanently"))
-
-        close_button = dialog.add_button(_("Close"), Gtk.ResponseType.CANCEL)
-        close_button.connect("clicked", self.close_clicked)
-        close_button.set_tooltip_text(_("Close the window - any changes are lost if you did not save"))
+        self.execute_button = glade.get_child_object("execute_button")
+        self.update_button = glade.get_child_object("update_button")
+        self.close_button = glade.get_child_object("close_button")
+        self.box = glade.get_child_object("box")
         
-        self.filter_combo = self.MyCombo([])
-        category_combo = self.MyCombo(list(zip(self.categories, self.categories_translated)))
+        if 0: glade.connect_signals(
+            {
+                'on_filter_changed': self.on_filter_changed,
+                'add_new_filter': self.add_new_filter,
+                'edit_filter': self.edit_filter,
+                'delete_filter': self.delete_filter,
+                'execute_clicked': self.execute_clicked,
+                'update_clicked': self.update_clicked,
+                'close_clicked': self.close_clicked,
+                'on_category_changed': self.on_category_changed,
+            }
+        )
+        if 1:
+            self.combo_filters.connect("changed", self.on_filter_changed)
+    
+            self.add_button.connect("clicked", self.add_new_filter)
+            self.edit_button.connect("clicked", self.edit_filter)
+            self.delete_button.connect("clicked", self.delete_filter)
+            
+            self.execute_button.connect("clicked", self.execute_clicked)
+            self.update_button.connect("clicked", self.update_clicked)
+            self.close_button.connect("clicked", self.close_clicked)
 
-        hbox = Gtk.HBox()
-        lbl = Gtk.Label(_("Category") + ":")
-        hbox.pack_start(lbl, False, False, 5)
-        hbox.pack_start(category_combo.widget, False, False, 5)
-        dialog.vbox.pack_start(hbox, False, False, 5)
-        
-        hbox = Gtk.HBox()
-        lbl = Gtk.Label(_("Filter") + ":")
-        hbox.pack_start(lbl, False, False, 5)
-        hbox.pack_start(self.filter_combo.widget, False, False, 5)
-        dialog.vbox.pack_start(hbox, False, False, 5)
+        for cat in self.categories_translated:
+            combo_categories.append_text(cat)
+        combo_categories.connect("changed", self.on_category_changed)
 
-        self.box = Gtk.Box()
-        self.dialog = dialog
-        dialog.vbox.pack_start(self.box, False, False, 5)
-
-        self.filter_combo.widget.connect("changed", self.on_filter_changed)
-        category_combo.widget.connect("changed", self.on_category_changed)
         if self.current_category not in self.categories:
             self.current_category = "Person"
-            
-        category_combo.set_value(self.current_category)
-        dialog.connect("delete-event", lambda x, y: self.close_clicked(dialog))
-        dialog.show_all()
-        return dialog
+        i = self.categories.index(self.current_category)
+        combo_categories.set_active(i)
+
+        self.dialog.connect("delete-event", lambda x, y: self.close_clicked(self.dialog))
+        self.dialog.show_all()
+        return self.dialog
 
     def on_category_changed(self, combo):
         tree_iter = combo.get_active_iter()
@@ -200,6 +233,8 @@ class Tool(tool.Tool):
         if self.frame:
             self.frame.destroy()
             self.frame = None
+        self.edit_button.set_sensitive(False)
+        self.delete_button.set_sensitive(False)
         self.execute_button.set_sensitive(False)
         self.update_button.set_sensitive(False)
         self.populate_filters(self.current_category)
@@ -271,30 +306,97 @@ class Tool(tool.Tool):
             (msg1, msg2) = msg.messages()
             ErrorDialog(msg1, msg2, parent=self.window)
             return
-        ShowResults(self.db, self.uistate, self.track, handle_list,
-                    self.current_filtername,self.current_category)
+        ShowResults(self.dbstate, self.uistate, self.track, handle_list,
+                    self.current_filtername, self.current_category)
 
+    def update(self):
+        print("update")
+        self.filterdb.save()
+        reload_custom_filters()
+        #self.filterdb = gramps.gen.filters.CustomFilters        
+        self.populate_filters(self.current_category)
+        self.uistate.emit('filters-changed', (self.current_category,))
+        
     # methods copied from gramps/gui/editors/filtereditor.py
     def add_new_filter(self, obj):
         the_filter = GenericFilterFactory(self.current_category)()
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
-                   the_filter, self.filterdb, update=None)
+                   the_filter, self.filterdb, update=self.update)
 
     def edit_filter(self, obj):
-        store, node = self.clist.get_selected()
-        if node:
-            gfilter = self.clist.get_object(node)
-            EditFilter(self.namespace, self.dbstate, self.uistate, self.track,
-                       gfilter, self.filterdb, self.draw_filters)
+        the_filter = self.getfilter(self.current_category,  self.current_filtername)
+        EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
+                   the_filter, self.filterdb, update=self.update)
 
     def clone_filter(self, obj):
-        store, node = self.clist.get_selected()
-        if node:
-            old_filter = self.clist.get_object(node)
-            the_filter = GenericFilterFactory(self.namespace)(old_filter)
-            the_filter.set_name('')
-            EditFilter(self.namespace, self.dbstate, self.uistate, self.track,
-                       the_filter, self.filterdb, self.draw_filters)
+        old_filter = self.getfilter(self.current_category,  self.current_filtername)
+        the_filter = GenericFilterFactory(self.namespace)(old_filter)
+        the_filter.set_name('')
+        EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
+                   the_filter, self.filterdb, update=self.update)
+
+    def delete_filter(self, obj):
+        gfilter = self.getfilter(self.current_category,  self.current_filtername)
+        name = gfilter.get_name()
+        using_filters = self.check_recursive_filters(self.current_category, name)
+        if using_filters:
+            QuestionDialog( _('Delete Filter?'),
+                            _('This filter is currently being used '
+                              'as the base for other filters. Deleting '
+                              'this filter will result in removing all '
+                              'other filters that depend on it:\n' +
+                              ", ".join(f.get_name() for f in using_filters)),
+                            _('Delete Filter'),
+                            self._do_delete_selected_filter,
+                            parent=self.dialog)
+        else:
+            self._do_delete_selected_filter()
+
+    def _find_dependent_filters(self, space, gfilter, filter_set):
+        """
+        This method recursively calls itself to find all filters that
+        depend on the given filter, either directly through one of the rules,
+        or through the chain of dependencies.
+
+        The filter_set is amended with the found filters.
+        """
+        filters = self.filterdb.get_filters(space)
+        name = gfilter.get_name()
+        for the_filter in filters:
+            if the_filter.get_name() == name:
+                continue
+            for rule in the_filter.get_rules():
+                values = list(rule.values())
+                if issubclass(rule.__class__, MatchesFilterBase) \
+                       and (name in values):
+                    self._find_dependent_filters(space, the_filter, filter_set)
+                    break
+        # Add itself to the filter_set
+        filter_set.add(gfilter)
+
+    def check_recursive_filters(self, space, name):
+        using_filters = []
+        for the_filter in self.filterdb.get_filters(space):
+            for rule in the_filter.get_rules():
+                values = list(rule.values())
+                if issubclass(rule.__class__, MatchesFilterBase) \
+                       and (name in values):
+                    using_filters.append(the_filter)
+        return using_filters
+
+    def _do_delete_selected_filter(self):
+        gfilter = self.getfilter(self.current_category,  self.current_filtername)
+        self._do_delete_filter(self.current_category, gfilter)
+        self.update()
+
+    def _do_delete_filter(self, space, gfilter):
+        # Find everything we need to remove
+        filter_set = set()
+        self._find_dependent_filters(space, gfilter, filter_set)
+
+        # Remove what we found
+        filters = self.filterdb.get_filters(space)
+        list(map(filters.remove, filter_set))
 
         
     def update_clicked(self, _widget):
@@ -609,6 +711,8 @@ class Tool(tool.Tool):
         self.frame = frame2
         self.dialog.resize(1,1) # shrink to minimum size needed    
         self.dialog.show_all()
+        self.edit_button.set_sensitive(True)
+        self.delete_button.set_sensitive(True)
         self.execute_button.set_sensitive(True)
         self.update_button.set_sensitive(True)
 
@@ -691,6 +795,306 @@ class Tool(tool.Tool):
         def get_value(self):
             # type: () -> str
             return self.widget.get_active_text()
+
+class Category:
+    def __init__(
+        self,
+        getfunc,        # type: Callable
+        commitfunc,     # type: Callable
+        get_all_objects_func,  # type: Callable
+        objcls,         # type: BaseObject
+        objclass,       # type: Optional[str]
+        editfunc,       # type: Callable
+    ):
+        self.getfunc = getfunc
+        self.commitfunc = commitfunc
+        self.get_all_objects_func = get_all_objects_func
+        self.objcls = objcls
+        self.objclass = objclass
+        self.editfunc = editfunc
+
+
+CATEGORIES = [
+    "People",
+    "Families",
+    "Events",
+    "Places",
+    "Citations",
+    "Sources",
+    "Repositories",
+    "Media",
+    "Notes",
+]
+
+def get_category_info(db, category_name):
+    # type: (Any, str) -> Category
+
+    objclass = None
+    print(category_name)
+    if category_name == "Person":
+        get_all_objects_func = db.get_person_handles
+        getfunc = db.get_person_from_handle
+        commitfunc = db.commit_person
+        editfunc = EditPerson
+        objcls = Person
+        objclass = "Person"
+    if category_name == "Family":
+        get_all_objects_func = db.get_family_handles
+        getfunc = db.get_family_from_handle
+        commitfunc = db.commit_family
+        editfunc = EditFamily
+        objcls = Family
+        objclass = "Family"
+    if category_name == "Place":
+        get_all_objects_func = db.get_place_handles
+        getfunc = db.get_place_from_handle
+        commitfunc = db.commit_place
+        editfunc = EditPlace
+        objcls = Place
+        objclass = "Place"
+    if category_name == "Event":
+        get_all_objects_func = db.get_event_handles
+        getfunc = db.get_event_from_handle
+        commitfunc = db.commit_event
+        editfunc = EditEvent
+        objcls = Event
+        objclass = "Event"
+    if category_name == "Citation":
+        get_all_objects_func = db.get_citation_handles
+        getfunc = db.get_citation_from_handle
+        commitfunc = db.commit_citation
+        editfunc = EditCitation
+        objcls = Citation
+        objclass = "Citation"
+    if category_name == "Source":
+        get_all_objects_func = db.get_source_handles
+        getfunc = db.get_source_from_handle
+        commitfunc = db.commit_source
+        editfunc = EditSource
+        objcls = Source
+        objclass = "Source"
+    if category_name == "Repository":
+        get_all_objects_func = db.get_repository_handles
+        getfunc = db.get_repository_from_handle
+        commitfunc = db.commit_repository
+        editfunc = EditRepository
+        objcls = Repository
+        objclass = "Repository"
+    if category_name == "Note":
+        get_all_objects_func = db.get_note_handles
+        getfunc = db.get_note_from_handle
+        commitfunc = db.commit_note
+        editfunc = EditNote
+        objcls = Note
+        objclass = "Note"
+    if category_name == "Media":
+        get_all_objects_func = db.get_media_handles
+        getfunc = db.get_media_from_handle
+        commitfunc = db.commit_media
+        editfunc = EditMedia
+        objcls = Media
+        objclass = "Media"
+    return Category(
+        getfunc,  
+        commitfunc,
+        get_all_objects_func,
+        objcls, 
+        objclass,
+        editfunc,  
+    )
+
+
+
+#-------------------------------------------------------------------------
+#
+# ShowResults
+#
+#-------------------------------------------------------------------------
+class ShowResults(ManagedWindow):
+    """Adapted from gramps/gui/editors/filtereditor.py"""
+    
+   
+    def __init__(self, dbstate, uistate, track, handle_list, filtname, namespace):
+        ManagedWindow.__init__(self, uistate, track, self)
+
+        self.dbstate = dbstate
+        self.db = dbstate.db
+        self.filtname = filtname
+        self.namespace = namespace
+        self.category_info = get_category_info(self.db, namespace)
+        glade = Glade(toplevel='test')
+
+        test_title = glade.get_child_object('test_title')
+        title = "{namespace}: {filtname} ({n} {objects})".format(
+            namespace=_(namespace),
+            filtname=filtname,
+            objects=_("objects"),
+            n=len(handle_list))
+        test_title.set_label(title)
+
+        self.set_window(
+            glade.get_child_object('test'),
+            None,
+            _('Filter Test'))
+
+        render = Gtk.CellRendererText()
+
+        self.treeview = glade.get_child_object('list')
+        model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING, GObject.TYPE_STRING, object)
+        self.treeview.set_model(model)
+
+        col = Gtk.TreeViewColumn(_('ID'), render, text=0)
+        col.set_clickable(True)
+        col.set_resizable(True)
+        col.set_sort_column_id(0)
+        self.treeview.append_column(col)
+
+        if self.namespace == "Event":
+            col = Gtk.TreeViewColumn(_('Type'), render, text=1)
+            col.set_clickable(True)
+            col.set_resizable(True)
+            col.set_sort_column_id(1)
+            self.treeview.append_column(col)
+
+            col = Gtk.TreeViewColumn(_('Description'), render, text=2)
+            col.set_clickable(True)
+            col.set_resizable(True)
+            col.set_sort_column_id(3)
+            self.treeview.append_column(col)
+        elif self.namespace == "Citation":
+            col = Gtk.TreeViewColumn(_('Page'), render, text=1)
+            col.set_clickable(True)
+            col.set_resizable(True)
+            col.set_sort_column_id(1)
+            self.treeview.append_column(col)
+
+            col = Gtk.TreeViewColumn(_('Source'), render, text=2)
+            col.set_clickable(True)
+            col.set_resizable(True)
+            col.set_sort_column_id(3)
+            self.treeview.append_column(col)
+        else:
+            col = Gtk.TreeViewColumn(_('Name'), render, text=1)
+            col.set_clickable(True)
+            col.set_resizable(True)
+            col.set_sort_column_id(1)
+            self.treeview.append_column(col)
+
+        self.treeview.connect("button-press-event", self.button_press)
+        
+        glade.get_child_object('test_close').connect('clicked', self.close)
+        glade.get_child_object('open_button').connect('clicked', self.open_object)
+
+        new_list = sorted(
+                        (self.sort_val_from_handle(h) for h in handle_list),
+                        key=lambda x: glocale.sort_key(x[0])
+                        )
+
+        for s_, handle in new_list:
+            gid, name, name2, obj = self.get_obj(handle)
+            model.append(row=[gid, name, name2, obj])
+
+        glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
+        self.show()
+
+    def button_press(self, listview, event):
+        # type: (Gtk.TreeView, Gtk. Event) -> bool
+        print("but" ,event)
+        if not self.db.db_is_open:
+            return True
+        try:  # may fail if clicked too frequently
+            if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS and event.button == 1:
+                self.open_object(None)
+                return True
+        except:
+            traceback.print_exc()
+        return False
+    
+    def open_object(self, _widget):
+        model, treeiter = self.treeview.get_selection().get_selected()
+        if treeiter is None: return # list is empty
+        row = list(model[treeiter])
+        obj = row[-1]
+        self.category_info.editfunc(self.dbstate, self.uistate, self.track, obj)
+
+    def get_obj(self, handle):
+        name2 = ""
+        if self.namespace == 'Person':
+            person = self.db.get_person_from_handle(handle)
+            name = name_displayer.sorted(person)
+            gid = person.get_gramps_id()
+            obj = person
+        elif self.namespace == 'Family':
+            family = self.db.get_family_from_handle(handle)
+            name = family_name(family, self.db)
+            gid = family.get_gramps_id()
+            obj = family
+        elif self.namespace == 'Event':
+            event = self.db.get_event_from_handle(handle)
+            name = str(event.get_type())
+            name2 = event.get_description()
+            gid = event.get_gramps_id()
+            obj = event
+        elif self.namespace == 'Source':
+            source = self.db.get_source_from_handle(handle)
+            name = source.get_title()
+            gid = source.get_gramps_id()
+            obj = source
+        elif self.namespace == 'Citation':
+            citation = self.db.get_citation_from_handle(handle)
+            src_handle = citation.get_reference_handle()
+            source = self.db.get_source_from_handle(src_handle)
+            name = citation.get_page() 
+            name2 = source.get_title() 
+            gid = citation.get_gramps_id()
+            obj = citation
+        elif self.namespace == 'Place':
+            place = self.db.get_place_from_handle(handle)
+            name = place_displayer.display(self.db, place)
+            gid = place.get_gramps_id()
+            obj = place
+        elif self.namespace == 'Media':
+            obj = self.db.get_media_from_handle(handle)
+            name = obj.get_description()
+            gid = obj.get_gramps_id()
+        elif self.namespace == 'Repository':
+            repo = self.db.get_repository_from_handle(handle)
+            name = repo.get_name()
+            gid = repo.get_gramps_id()
+            obj = repo
+        elif self.namespace == 'Note':
+            note = self.db.get_note_from_handle(handle)
+            name = note.get().replace('\n', ' ')
+            if len(name) > 80:
+                name = name[:80]+"..."
+            gid = note.get_gramps_id()
+            obj = note
+        return (gid, name, name2, obj)
+
+    def sort_val_from_handle(self, handle):
+        if self.namespace == 'Person':
+            name = self.db.get_person_from_handle(handle).get_primary_name()
+            sortname = name_displayer.sort_string(name)
+        elif self.namespace == 'Family':
+            sortname = family_name(
+                self.db.get_family_from_handle(handle),self.db)
+        elif self.namespace == 'Event':
+            sortname = self.db.get_event_from_handle(handle).get_description()
+        elif self.namespace == 'Source':
+            sortname = self.db.get_source_from_handle(handle).get_title()
+        elif self.namespace == 'Citation':
+            sortname = self.db.get_citation_from_handle(handle).get_page()
+        elif self.namespace == 'Place':
+            place = self.db.get_place_from_handle(handle)
+            sortname = place_displayer.display(self.db, place)
+        elif self.namespace == 'Media':
+            sortname = self.db.get_media_from_handle(handle).get_description()
+        elif self.namespace == 'Repository':
+            sortname = self.db.get_repository_from_handle(handle).get_name()
+        elif self.namespace == 'Note':
+            gid = self.db.get_note_from_handle(handle).get_gramps_id()
+            sortname = gid
+        return (sortname, handle)
 
 
 #------------------------------------------------------------------------
