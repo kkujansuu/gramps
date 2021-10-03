@@ -23,7 +23,6 @@ import re
 import traceback
 from collections import defaultdict
 from pprint import pprint
-from nis import cat
 
 try:
     from typing import List, Tuple, Optional, Iterator, Generator, Any, Callable
