@@ -25,66 +25,70 @@ from collections import defaultdict
 from pprint import pprint
 
 try:
-    from typing import List, Tuple, Optional, Iterator, Generator, Any, Callable
+    from typing import Any, Callable, Generator, Iterator, List, Optional, Tuple
 except:
     pass
- 
-from gi.repository import Gtk, Gdk, GObject
 
-from gramps.gen.lib import Citation
-from gramps.gen.lib import Event
-from gramps.gen.lib import Family
-from gramps.gen.lib import Media
-from gramps.gen.lib import Note
-from gramps.gen.lib import Person
-from gramps.gen.lib import Place
-from gramps.gen.lib import Repository
-from gramps.gen.lib import Source
+from gi.repository import Gdk, GObject, Gtk
 
-from gramps.gui.dialog import QuestionDialog, ErrorDialog
-
-from gramps.gui.editors import EditCitation
-from gramps.gui.editors import EditEvent
-from gramps.gui.editors import EditFamily
-from gramps.gui.editors import EditMedia
-from gramps.gui.editors import EditNote
-from gramps.gui.editors import EditPerson
-from gramps.gui.editors import EditPlace
-from gramps.gui.editors import EditRepository
-from gramps.gui.editors import EditSource
-
+import gramps.gen.filters
 from gramps.gen.const import CUSTOM_FILTERS
+from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gen.datehandler import displayer
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.display.place import displayer as place_displayer
-
-from gramps.gen.errors import FilterError
-from gramps.gen.filters import reload_custom_filters, GenericFilterFactory
+from gramps.gen.errors import FilterError, WindowActiveError
+from gramps.gen.filters import GenericFilterFactory, reload_custom_filters
 from gramps.gen.filters.rules import MatchesFilterBase
-import gramps.gen.filters 
-
+from gramps.gen.lib import (
+    Citation,
+    Event,
+    Family,
+    Media,
+    Note,
+    Person,
+    Place,
+    Repository,
+    Source,
+)
 from gramps.gen.utils.callman import CallbackManager
 from gramps.gen.utils.db import family_name
 from gramps.gen.utils.string import conf_strings
-
 from gramps.gui.dbguielement import DbGUIElement
+from gramps.gui.dialog import ErrorDialog, QuestionDialog
+from gramps.gui.editors import (
+    EditCitation,
+    EditEvent,
+    EditFamily,
+    EditMedia,
+    EditNote,
+    EditPerson,
+    EditPlace,
+    EditRepository,
+    EditSource,
+)
+from gramps.gui.editors.filtereditor import MyEntry  # , ShowResults
+from gramps.gui.editors.filtereditor import (
+    EditFilter,
+    MyBoolean,
+    MyFilters,
+    MyID,
+    MyInteger,
+    MyLesserEqualGreater,
+    MyList,
+    MyPlaces,
+    MySelect,
+    MySource,
+    _name2typeclass,
+)
 from gramps.gui.glade import Glade
 from gramps.gui.managedwindow import ManagedWindow
 from gramps.gui.plug import tool
-from gramps.gui.views.listview import ListView
 from gramps.gui.user import User
-
+from gramps.gui.views.listview import ListView
 from gramps.gui.widgets import DateEntry
 
-from gramps.gui.editors.filtereditor import MyPlaces, MyInteger, MyLesserEqualGreater
-from gramps.gui.editors.filtereditor import MyID, MySource, MyFilters
-from gramps.gui.editors.filtereditor import MySelect, MyBoolean, MyList
-from gramps.gui.editors.filtereditor import MyEntry #, ShowResults
-from gramps.gui.editors.filtereditor import _name2typeclass
-from gramps.gui.editors.filtereditor import EditFilter
-
-from gramps.gen.const import GRAMPS_LOCALE as glocale
 try:
     _trans = glocale.get_addon_translator(__file__)
 except ValueError:
@@ -146,7 +150,7 @@ class Tool(tool.Tool):
         self.dialog = self.create_gui()
         #self.set_window(self.dialog, None, _("Filter Parameters"))
 
-    def build_menu_names(self, obj): 
+    def build_menu_names(self, obj):
         """
         Needed by ManagedWindow to build the Windows menu
         """
@@ -162,16 +166,16 @@ class Tool(tool.Tool):
             filtername = filter.get_name()
             self.filternames.append(filtername)
             self.combo_filters.append_text(filtername)
-        if len(self.filternames) > 0: 
+        if len(self.filternames) > 0:
             self.combo_filters.set_active(0)
-        
+
     def create_gui(self):
         self.filternames = []
-        category = self.uistate.viewmanager.active_page.get_category()         
+        category = self.uistate.viewmanager.active_page.get_category()
         if category == "People": category = "Person"
         if category.endswith("ies"): category = category[0:-3] + "y"
         if category.endswith("s"): category = category[0:-1]
-        self.current_category = category    
+        self.current_category = category
 
         glade = Glade(toplevel='dialog1')
         self.dialog = glade.toplevel
@@ -185,7 +189,7 @@ class Tool(tool.Tool):
         self.update_button = glade.get_child_object("update_button")
         self.close_button = glade.get_child_object("close_button")
         self.box = glade.get_child_object("box")
-        
+
         if 0: glade.connect_signals(
             {
                 'on_filter_changed': self.on_filter_changed,
@@ -200,11 +204,11 @@ class Tool(tool.Tool):
         )
         if 1:
             self.combo_filters.connect("changed", self.on_filter_changed)
-    
+
             self.add_button.connect("clicked", self.add_new_filter)
             self.edit_button.connect("clicked", self.edit_filter)
             self.delete_button.connect("clicked", self.delete_filter)
-            
+
             self.execute_button.connect("clicked", self.execute_clicked)
             self.update_button.connect("clicked", self.update_clicked)
             self.close_button.connect("clicked", self.close_clicked)
@@ -261,12 +265,12 @@ class Tool(tool.Tool):
         elif category == 'Repository':
             return self.db.get_repository_handles()
         elif category == 'Note':
-            return self.db.get_note_handles()       
-         
+            return self.db.get_note_handles()
+
     def execute_clicked(self, _widget):
         class User2:
             """
-            Helper class to provide "can_cancel" functionality to 
+            Helper class to provide "can_cancel" functionality to
             the progress indicator used by gramps.gen.filters._genericfilter.GenericFilter.apply().
             Replaces the gramps.gui.user.User class for this case.
             Code copied from gramps/gui/user.py.
@@ -312,10 +316,10 @@ class Tool(tool.Tool):
         print("update")
         self.filterdb.save()
         reload_custom_filters()
-        #self.filterdb = gramps.gen.filters.CustomFilters        
+        # self.filterdb = gramps.gen.filters.CustomFilters
         self.populate_filters(self.current_category)
         self.uistate.emit('filters-changed', (self.current_category,))
-        
+
     # methods copied from gramps/gui/editors/filtereditor.py
     def add_new_filter(self, obj):
         the_filter = GenericFilterFactory(self.current_category)()
@@ -397,7 +401,6 @@ class Tool(tool.Tool):
         filters = self.filterdb.get_filters(space)
         list(map(filters.remove, filter_set))
 
-        
     def update_clicked(self, _widget):
         #self.update_params()
         self.filterdb.save()
@@ -407,7 +410,7 @@ class Tool(tool.Tool):
         reload_custom_filters()  # so that our (non-saved) changes will be discared
         self.dialog.destroy()
         self.dialog = None
-    
+
     def get_widgets(self,arglist,filtername):
         # Code copied from gramps/gui/editors/filtereditor.py
         pos = 0
@@ -516,7 +519,8 @@ class Tool(tool.Tool):
         Gtk.Grid that is easier to use; just call .add() to add a new item.
         Set argument 'incrow' to False if next item should be on the same row.
         """
-        def __init__(self):                       
+
+        def __init__(self):
             Gtk.Grid.__init__(self)
             self.set_margin_left(10)
             self.set_margin_top(0)
@@ -526,7 +530,7 @@ class Tool(tool.Tool):
             self.col = 0
         def add(self, widget, incrow=True):
             self.attach(widget,self.col,self.row,1,1)
-            if incrow: 
+            if incrow:
                 self.row += 1
                 self.col = 0
             else:
@@ -536,9 +540,9 @@ class Tool(tool.Tool):
         for (filter,invert_checkbox,logical_combo) in self.filterparams:
             filter.set_invert(invert_checkbox.get_active())
             filter.set_logical_op(self.ops[logical_combo.widget.get_active()])
-        
+
         for (rule, paramindex, entry) in self.entries:
-            value = str(entry.get_text()) 
+            value = str(entry.get_text())
             rule.list[paramindex] = value
         for (rule,use_regex) in self.regexes:
             value = use_regex.get_active()
@@ -546,12 +550,12 @@ class Tool(tool.Tool):
         for oldvalue, entries in self.values.items():
             value = None
             for entry,rule,paramindex in entries:
-                if value is None: 
+                if value is None:
                     value = entry.get_text()
                 else:
                     rule.list[paramindex] = value
                 entry.set_text(value)
-                
+
         #self.filterdb.save()
         #reload_custom_filters()
 
@@ -560,22 +564,22 @@ class Tool(tool.Tool):
         filters = self.filterdb.get_filters_dict(category)
         return filters.get(filtername)
 
-           
+
     def addfilter(self, grid, category, filtername, level):
         """
         Add the GUI widgets for the filter in the supplied Gtk.Grid.
         The grid is already contained in a Gtk.Frame with appropriate label.
-        
+
         Saves the widget in three arrays (entries, filterparams and regexes).
         """
         if level > 10: return
         filter = self.getfilter(category, filtername)
-        if filter is None:  # not found for some reason 
+        if filter is None:  # not found for some reason
             lbl = Gtk.Label()
             lbl.set_halign(Gtk.Align.START)
             lbl.set_markup("<span color='red' size='larger'>" + _("Error") +"</span>")
             grid.add(lbl)
-            return 
+            return
         if filter.comment:
             # grid.parent is the frame
             grid.get_parent().set_tooltip_text(filter.comment)
@@ -584,7 +588,9 @@ class Tool(tool.Tool):
 
         invert_checkbox = Gtk.CheckButton("invert")
         invert_checkbox.set_active(filter.get_invert())
-        invert_checkbox.set_tooltip_text(_("Return values that do not match the filter rules")) 
+        invert_checkbox.set_tooltip_text(
+            _("Return values that do not match the filter rules")
+        )
 
         choices = [
             _("All rules must apply"),
@@ -593,7 +599,7 @@ class Tool(tool.Tool):
         ]
         self.ops = ["and","or","one"]
         op = filter.get_logical_op()
-        combo = self.MyCombo(choices)        
+        combo = self.MyCombo(choices)
         combo.widget.set_active(self.ops.index(op))
         hbox = Gtk.HBox()
         hbox.add(invert_checkbox)
@@ -602,7 +608,7 @@ class Tool(tool.Tool):
         grid.add(hbox)
 
         self.filterparams.append((filter,invert_checkbox, combo))
-        
+
         for rule in filter.get_rules():
             lab = Gtk.Label(" ") # to separate the frames
             grid.add(lab)
@@ -623,7 +629,7 @@ class Tool(tool.Tool):
                     matchcategory = category
                 filtername = rule.list[0]
                 grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b>: " + filtername)
-               
+
                 self.addfilter(grid2, matchcategory, filtername, level+1)
                 continue
 
@@ -654,7 +660,7 @@ class Tool(tool.Tool):
                 use_regex.set_active(rule.use_regex)
                 grid2.add(use_regex)
                 self.regexes.append((rule,use_regex))
-    
+
     def add_frame(self, grid, level, caption, tooltip=None):
         lbl = Gtk.Label()
         lbl.set_halign(Gtk.Align.START)
@@ -663,13 +669,13 @@ class Tool(tool.Tool):
         frame2.set_label_widget(lbl)
         if self.use_colors:
             frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(level))
-        
+
         grid.add(frame2)
         grid2 = self.MyGrid()
         frame2.add(grid2) #
-        frame2.set_tooltip_text(tooltip) 
+        frame2.set_tooltip_text(tooltip)
         return grid2
-    
+
     def on_filter_changed(self, combo):
 #         import random
 #         random.shuffle(self.colors)
@@ -684,7 +690,7 @@ class Tool(tool.Tool):
 
         # load from xml file, any temporary changes are lost
         reload_custom_filters()
-        self.filterdb = gramps.gen.filters.CustomFilters        
+        self.filterdb = gramps.gen.filters.CustomFilters
 
         self.current_filtername = filtername
         if self.frame:
@@ -694,7 +700,7 @@ class Tool(tool.Tool):
         self.filterparams = []
         self.regexes = []
         self.values = defaultdict(list)
-        
+
         lbl = Gtk.Label(filtername)
         lbl.set_halign(Gtk.Align.START)
         lbl.set_markup("<b>"+filtername+"</b>")
@@ -708,7 +714,7 @@ class Tool(tool.Tool):
         self.addfilter(self.grid, self.current_category, filtername, 1)
         self.box.add(frame2)
         self.frame = frame2
-        self.dialog.resize(1,1) # shrink to minimum size needed    
+        self.dialog.resize(1, 1)  # shrink to minimum size needed
         self.dialog.show_all()
         self.edit_button.set_sensitive(True)
         self.delete_button.set_sensitive(True)
@@ -726,7 +732,7 @@ class Tool(tool.Tool):
             # type: () -> Any
             return self.widget.get_text()
 
-                                    
+
     class MyCheckBox(MyWidget):
         def __init__(self):
             # type: () -> None
@@ -744,7 +750,7 @@ class Tool(tool.Tool):
             self.widget = Gtk.SpinButton()
             self.widget.set_numeric(True)
             adjustment = Gtk.Adjustment(upper=100, step_increment=1, page_increment=10)
-            self.widget.set_adjustment(adjustment)            
+            self.widget.set_adjustment(adjustment)
         def set_value(self, value):
             # type: (int) -> None
             self.widget.set_value(value)
@@ -780,7 +786,7 @@ class Tool(tool.Tool):
                     else:
                         self.widget.append_text(data)
                         self.widget.set_entry_text_column(0)
-    
+
             self.widget.set_popup_fixed_width(False)
             self.widget.set_wrap_width(wrap_width)
 
@@ -829,7 +835,6 @@ def get_category_info(db, category_name):
     # type: (Any, str) -> Category
 
     objclass = None
-    print(category_name)
     if category_name == "Person":
         get_all_objects_func = db.get_person_handles
         getfunc = db.get_person_from_handle
@@ -894,12 +899,12 @@ def get_category_info(db, category_name):
         objcls = Media
         objclass = "Media"
     return Category(
-        getfunc,  
+        getfunc,
         commitfunc,
         get_all_objects_func,
-        objcls, 
+        objcls,
         objclass,
-        editfunc,  
+        editfunc,
     )
 
 
@@ -911,8 +916,7 @@ def get_category_info(db, category_name):
 #-------------------------------------------------------------------------
 class ShowResults(ManagedWindow):
     """Adapted from gramps/gui/editors/filtereditor.py"""
-    
-   
+
     def __init__(self, dbstate, uistate, track, handle_list, filtname, namespace):
         ManagedWindow.__init__(self, uistate, track, self)
 
@@ -980,7 +984,7 @@ class ShowResults(ManagedWindow):
             self.treeview.append_column(col)
 
         self.treeview.connect("button-press-event", self.button_press)
-        
+
         glade.get_child_object('test_close').connect('clicked', self.close)
         glade.get_child_object('open_button').connect('clicked', self.open_object)
 
@@ -996,25 +1000,24 @@ class ShowResults(ManagedWindow):
         glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
         self.show()
 
-    def button_press(self, listview, event):
+    def button_press(self, _listview, event):
         # type: (Gtk.TreeView, Gtk. Event) -> bool
-        print("but" ,event)
         if not self.db.db_is_open:
             return True
-        try:  # may fail if clicked too frequently
-            if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS and event.button == 1:
-                self.open_object(None)
-                return True
-        except:
-            traceback.print_exc()
-        return False
-    
+        if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS and event.button == 1:
+            self.open_object(None)
+
     def open_object(self, _widget):
         model, treeiter = self.treeview.get_selection().get_selected()
         if treeiter is None: return # list is empty
         row = list(model[treeiter])
         obj = row[-1]
-        self.category_info.editfunc(self.dbstate, self.uistate, self.track, obj)
+        try:  # may fail if clicked too frequently or window already open
+            self.category_info.editfunc(self.dbstate, self.uistate, self.track, obj)
+        except WindowActiveError:
+            pass
+        except:
+            traceback.print_exc()
 
     def get_obj(self, handle):
         name2 = ""
@@ -1043,8 +1046,8 @@ class ShowResults(ManagedWindow):
             citation = self.db.get_citation_from_handle(handle)
             src_handle = citation.get_reference_handle()
             source = self.db.get_source_from_handle(src_handle)
-            name = citation.get_page() 
-            name2 = source.get_title() 
+            name = citation.get_page()
+            name2 = source.get_title()
             gid = citation.get_gramps_id()
             obj = citation
         elif self.namespace == 'Place':
@@ -1113,4 +1116,3 @@ class Options(tool.ToolOptions):
         )
         self.options_help = dict(
         )
-
