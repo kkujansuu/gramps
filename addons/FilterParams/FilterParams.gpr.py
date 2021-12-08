@@ -22,27 +22,29 @@
 """
 Gramps registration file
 """
-from gramps.version import major_version
 from gramps.gui import plug
+from gramps.version import major_version
+
 plug.tool.tool_categories["Isotammi"] = ("Isotammi", _("Isotammi tools"))
 
 #------------------------------------------------------------------------
 #
-# FilterParams  
+# FilterParams
 #
 #------------------------------------------------------------------------
 
-register(TOOL, 
-    id    = 'FilterParams',
-    name  = _("FilterParams"),
-    description =  _("Display custom filters and allow changing their parameters"),
-    version = '1.0.0',
-    gramps_target_version = major_version,
-    status = STABLE,
-    fname = 'FilterParams.py',
-    authors = ["Kari Kujansuu"],
-    category = "Isotammi",
-    toolclass = 'Tool',
-    optionclass = 'Options',
-    tool_modes = [TOOL_MODE_GUI]
+register(
+    TOOL,
+    id="FilterParams",
+    name=_("FilterParams"),
+    description=_("Display custom filters and allow changing their parameters"),
+    version="1.0.1",
+    gramps_target_version=major_version,
+    status=STABLE,
+    fname="FilterParams.py",
+    authors=["Kari Kujansuu"],
+    category="Isotammi",
+    toolclass="Tool",
+    optionclass="Options",
+    tool_modes=[TOOL_MODE_GUI],
 )

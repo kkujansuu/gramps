@@ -113,16 +113,16 @@ regex_tip = _('Interpret the contents of string fields as regular '
 # Tool
 #
 #-------------------------------------------------------------------------
-class Tool(tool.Tool):
+class Tool(tool.Tool, ManagedWindow):
 
     def __init__(self, dbstate, user, options_class, name, callback=None):
         # type: (Any, Any, Any, str, Callable) -> None
         tool.Tool.__init__(self, dbstate, options_class, name)
-        #ManagedWindow.__init__(self, user.uistate, [], self.__class__, modal=False)
+        ManagedWindow.__init__(self, user.uistate, [], self.__class__, modal=False)
         self.user = user
         self.uistate = user.uistate
         self.dbstate = dbstate
-        self.track = []
+        # self.track = []
         self.frame = None
         self.categories = [
             "Person",
@@ -148,7 +148,7 @@ class Tool(tool.Tool):
 
         self.filterdb = gramps.gen.filters.CustomFilters
         self.dialog = self.create_gui()
-        #self.set_window(self.dialog, None, _("Filter Parameters"))
+        self.set_window(self.dialog, None, _("Filter Parameters"))
 
     def build_menu_names(self, obj):
         """
@@ -313,10 +313,8 @@ class Tool(tool.Tool):
                     self.current_filtername, self.current_category)
 
     def update(self):
-        print("update")
         self.filterdb.save()
         reload_custom_filters()
-        # self.filterdb = gramps.gen.filters.CustomFilters
         self.populate_filters(self.current_category)
         self.uistate.emit('filters-changed', (self.current_category,))
 
@@ -407,9 +405,10 @@ class Tool(tool.Tool):
 
     def close_clicked(self, _widget):
         #print("FilterParams closing")
-        reload_custom_filters()  # so that our (non-saved) changes will be discared
+        reload_custom_filters()  # so that our (non-saved) changes will be discarded
         self.dialog.destroy()
         self.dialog = None
+        self.close()
 
     def get_widgets(self,arglist,filtername):
         # Code copied from gramps/gui/editors/filtereditor.py
