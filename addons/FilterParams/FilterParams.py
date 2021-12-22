@@ -137,12 +137,12 @@ class Tool(tool.Tool, ManagedWindow):
         ]
         self.categories_translated = [_(cat) for cat in self.categories]
         self.colors = [
-             Gdk.RGBA(0.9,0.9,0.99, 0.999),
-             Gdk.RGBA(0.9,0.99,0.9, 0.999),
-             Gdk.RGBA(0.99,0.99,0.9, 0.999),
-             Gdk.RGBA(0.99,0.9,0.9, 0.999),
-             Gdk.RGBA(0.9,0.99,0.99, 0.999),
-             Gdk.RGBA(0.99,0.9,0.99, 0.999),
+            Gdk.RGBA(0.39, 0.39, 0.58, 0.999),
+            Gdk.RGBA(0.39, 0.58, 0.39, 0.999),
+            Gdk.RGBA(0.58, 0.58, 0.39, 0.999),
+            Gdk.RGBA(0.58, 0.39, 0.39, 0.999),
+            Gdk.RGBA(0.39, 0.58, 0.58, 0.999),
+            Gdk.RGBA(0.58, 0.39, 0.58, 0.999),
         ]
         self.use_colors = True
 
