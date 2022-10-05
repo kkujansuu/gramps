@@ -572,7 +572,16 @@ class Tool(tool.Tool, ManagedWindow):
 
         Saves the widget in three arrays (entries, filterparams and regexes).
         """
-        if level > 10: return
+        if level > 10:
+            lbl = Gtk.Label()
+            lbl.set_halign(Gtk.Align.START)
+            lbl.set_markup(
+                "<span color='red' size='larger'>"
+                + _("Too deeply nested filters")
+                + "</span>"
+            )
+            grid.add(lbl)
+            return
         filter = self.getfilter(category, filtername)
         if filter is None:  # not found for some reason
             lbl = Gtk.Label()
