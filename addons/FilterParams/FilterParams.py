@@ -362,10 +362,14 @@ class Tool(tool.Tool, ManagedWindow):
 
         The filter_set is amended with the found filters.
         """
-        filters = self.filterdb.get_filters(space)
+        # Add itself to the filter_set
+        filter_set.add(gfilter)
         name = gfilter.get_name()
+        filters = self.filterdb.get_filters(space)
         for the_filter in filters:
             if the_filter.get_name() == name:
+                continue
+            if the_filter in filter_set: # prevent infinite recursion
                 continue
             for rule in the_filter.get_rules():
                 values = list(rule.values())
@@ -373,8 +377,6 @@ class Tool(tool.Tool, ManagedWindow):
                        and (name in values):
                     self._find_dependent_filters(space, the_filter, filter_set)
                     break
-        # Add itself to the filter_set
-        filter_set.add(gfilter)
 
     def check_recursive_filters(self, space, name):
         using_filters = []
