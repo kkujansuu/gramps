@@ -157,7 +157,7 @@ class Tool(tool.Tool, ManagedWindow):
         """
         return ('FilterParams','FilterParams')
 
-    def populate_filters(self, category):
+    def populate_filters(self, category, current_filtername=None):
         self.filterdb = gramps.gen.filters.CustomFilters
         self.filterdb.load()
         filters = self.filterdb.get_filters_dict(category)
@@ -168,7 +168,11 @@ class Tool(tool.Tool, ManagedWindow):
             self.filternames.append(filtername)
             self.combo_filters.append_text(filtername)
         if len(self.filternames) > 0:
-            self.combo_filters.set_active(0)
+            if current_filtername in self.filternames:
+                current_index = self.filternames.index(current_filtername)
+                self.combo_filters.set_active(current_index)
+            else:
+                self.combo_filters.set_active(0)
 
     def create_gui(self):
         self.filternames = []
@@ -313,24 +317,27 @@ class Tool(tool.Tool, ManagedWindow):
         ShowResults(self.dbstate, self.uistate, self.track, handle_list,
                     self.current_filtername, self.current_category)
 
-    def update(self):
+    def update(self, current_filtername=None):
         self.filterdb.save()
         reload_custom_filters()
-        self.populate_filters(self.current_category)
+        self.populate_filters(self.current_category, current_filtername)
         self.uistate.emit('filters-changed', (self.current_category,))
 
+    def selection_callback(self, filterdb, filtername):
+        self.update(filtername)
+        
     # methods copied from gramps/gui/editors/filtereditor.py
     def add_new_filter(self, obj):
         the_filter = GenericFilterFactory(self.current_category)()
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
-                   the_filter, self.filterdb, update=self.update)
+                   the_filter, self.filterdb, selection_callback=self.selection_callback)
 
     def edit_filter(self, obj):
         the_filter = self.getfilter(self.current_category,  self.current_filtername)
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
-                   the_filter, self.filterdb, update=self.update)
+                   the_filter, self.filterdb, selection_callback=self.selection_callback)
 
-    def clone_filter(self, obj):
+    def clone_filter(self, obj): # not used
         old_filter = self.getfilter(self.current_category,  self.current_filtername)
         the_filter = GenericFilterFactory(self.namespace)(old_filter)
         the_filter.set_name('')
