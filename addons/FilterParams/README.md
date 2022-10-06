@@ -1,7 +1,8 @@
 FilterParams
 ------------
 Author: kari.kujansuu@gmail.com<br>
-September 2021
+September 2021<br>
+Updated October 2022
 
 Gramps add-on that displays the contents and structure of custom filters and allows changing parameters in one screen.
 
@@ -29,9 +30,14 @@ The first dropdown list contains all categories, the default is the current cate
 
 ![FilterParams](FilterParams2.png)
 
-If a filter is using another filter then the contents of that filter is also shown in an embedded frame. The colors are intended to help in visualizing the structure (unfortunately this color scheme does not work properly with a dark color theme).
+If a filter is using another filter then the contents of that filter is also shown in an embedded frame. The colors are intended to help in visualizing the structure.  Any description (comment) for the filter is shown below the filter name. Likewise, the rule descriptions are shown below the rule names.
 
-Any parameters are shown in a similar manner as in the regular filter rule editor. Change any parameters and press "Test run" - this will apply the filter to all objects in the relevant category and display the result, i.e. objects matching the filter, in a separate window:
+Filters nesting is supported up to 10 levels deep. If that is exceeded then the display is truncated and a message is displayed:
+
+![FilterParams](FilterParams-nesting.png)
+
+
+Any parameters are shown in a similar manner as in the regular filter rule editor. Change any parameters and press "Test run" - this will apply the filter to all objects in the relevant category and display the result, i.e. objects matching the filter, in a separate window - where you can open the matching objects if needed:
 
 ![FilterParams](FilterParams-testrun.png)
 
@@ -50,6 +56,10 @@ One way to use the tool is to open the same filter simultaneously in this tool a
 It is also probably a good idea to name the filters generically, like above: "In place X" - not "In Florida". This makes changing the parameters more natural.
 
 ### Other features
+
+#### Adding and editing filters
+
+New custom filters can be added by clicking the 'New' button. The selected filter can be edited with the 'Edit' button. These use the regular Gramps filter editor. The delete button deletes the selected filter. Cloning filters is not supported (at least not yet).
 
 #### ID linking
 
