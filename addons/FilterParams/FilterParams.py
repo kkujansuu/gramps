@@ -565,11 +565,8 @@ class Tool(tool.Tool, ManagedWindow):
                     rule.list[paramindex] = value
                 entry.set_text(value)
 
-        #self.filterdb.save()
-        #reload_custom_filters()
 
     def getfilter(self, category, filtername):
-        #filters = self.filterdb.get_filters_dict(category)
         filters = self.filterdb.get_filters_dict(category)
         return filters.get(filtername)
 
@@ -579,6 +576,21 @@ class Tool(tool.Tool, ManagedWindow):
             text = text[0:77] + "..."
         text = text.replace("<","&lt;")
         return text
+    
+    def add_frame_and_filter(self, grid, category, filtername, level):
+        """
+        Add a new Frame inside grid and a new Grid inside that Frame.
+        Call addfilter to add a new frame inside the new grid to represent filter named 'filtername'.
+        """
+        filter = self.getfilter(category, filtername)
+        caption = "<b>"+self.clean(filtername)+"</b>"
+        if filter.comment.strip():
+            caption += "\n"+self.clean(filter.comment)
+        
+        tooltip = filtername + "\n\n" + filter.comment
+        frame, grid2 = self.add_frame(grid, level, caption, tooltip)
+        self.addfilter(grid2, category, filtername, level+1)
+        return frame
     
     def addfilter(self, grid, category, filtername, level):
         """
@@ -604,10 +616,6 @@ class Tool(tool.Tool, ManagedWindow):
             lbl.set_markup("<span color='red' size='larger'>" + _("Error") +"</span>")
             grid.add(lbl)
             return
-        if filter.comment:
-            # grid.parent is the frame
-            grid.get_parent().set_tooltip_text(filtername + "\n\n" + filter.comment)
-            grid.get_parent().get_label_widget().set_markup("<b>"+self.clean(filtername)+"</b> "+self.clean(filter.comment))
 
         clsname = filter.__class__.__name__
 
@@ -653,13 +661,13 @@ class Tool(tool.Tool, ManagedWindow):
                 else:
                     matchcategory = category
                 filtername = rule.list[0]
-                frame, grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b>: " + filtername)
 
-                self.addfilter(grid2, matchcategory, filtername, level+1)
+                self.add_frame_and_filter(grid, matchcategory, filtername, level)
+                
                 continue
 
             # Regular rule
-            frame, grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b> " + self.clean(_(rule.name)),
+            frame, grid2 = self.add_frame(grid, level, "<b>"+self.clean(_(rule.name))+"</b>\n" + self.clean(_(rule.description)),
                                    tooltip=_(rule.name) + "\n\n" + _(rule.description))
             for paramindex,(caption, value) in enumerate(zip(rule.labels,rule.list)):
                 if type(caption) is tuple:
@@ -727,9 +735,9 @@ class Tool(tool.Tool, ManagedWindow):
         self.values = defaultdict(list)
 
         caption = "<b>"+filtername+"</b>"
-        frame2, self.grid = self.add_frame(None, level=0, caption=caption, tooltip=None)
 
-        self.addfilter(self.grid, self.current_category, filtername, 1)
+        frame2 = self.add_frame_and_filter(None, self.current_category, filtername, 0)
+        
         self.box.add(frame2)
         self.frame = frame2
         self.dialog.resize(1, 1)  # shrink to minimum size needed
