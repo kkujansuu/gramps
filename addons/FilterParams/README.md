@@ -6,11 +6,7 @@ Updated October 2022
 
 Gramps add-on that displays the contents and structure of custom filters and allows changing parameters in one screen.
 
-<<<<<<< HEAD
 ⚠<span style="color:red">*This is beta code, please back up the custom_filters.xml file before using this.*</span>⚠
-=======
-<span style="color:red">*This is beta code, please back up the custom_filters.xml file before using this.*</span>
->>>>>>> branch 'master' of git@github.com:kkujansuu/gramps.git
 
 For details on custom filters, see https://gramps-project.org/wiki/index.php/Gramps_5.1_Wiki_Manual_-_Filters#Custom_Filters
 
