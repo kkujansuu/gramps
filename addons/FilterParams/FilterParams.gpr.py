@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2021      KKu
+# Copyright (C) 2021-2022      Gramps developers, Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ register(
     id="FilterParams",
     name=_("FilterParams"),
     description=_("Display custom filters and allow changing their parameters"),
-    version="1.0.1",
+    version="1.1.0",
     gramps_target_version=major_version,
     status=STABLE,
     fname="FilterParams.py",
