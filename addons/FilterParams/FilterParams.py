@@ -574,6 +574,12 @@ class Tool(tool.Tool, ManagedWindow):
         return filters.get(filtername)
 
 
+    def clean(self, text):
+        if len(text) > 80:
+            text = text[0:77] + "..."
+        text = text.replace("<","&lt;")
+        return text
+    
     def addfilter(self, grid, category, filtername, level):
         """
         Add the GUI widgets for the filter in the supplied Gtk.Grid.
@@ -600,7 +606,8 @@ class Tool(tool.Tool, ManagedWindow):
             return
         if filter.comment:
             # grid.parent is the frame
-            grid.get_parent().set_tooltip_text(filter.comment)
+            grid.get_parent().set_tooltip_text(filtername + "\n\n" + filter.comment)
+            grid.get_parent().get_label_widget().set_markup("<b>"+self.clean(filtername)+"</b> "+self.clean(filter.comment))
 
         clsname = filter.__class__.__name__
 
@@ -646,13 +653,13 @@ class Tool(tool.Tool, ManagedWindow):
                 else:
                     matchcategory = category
                 filtername = rule.list[0]
-                grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b>: " + filtername)
+                frame, grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b>: " + filtername)
 
                 self.addfilter(grid2, matchcategory, filtername, level+1)
                 continue
 
             # Regular rule
-            grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b>",
+            frame, grid2 = self.add_frame(grid, level, "<b>"+clsname+"</b> " + self.clean(_(rule.name)),
                                    tooltip=_(rule.name) + "\n\n" + _(rule.description))
             for paramindex,(caption, value) in enumerate(zip(rule.labels,rule.list)):
                 if type(caption) is tuple:
@@ -680,6 +687,7 @@ class Tool(tool.Tool, ManagedWindow):
                 self.regexes.append((rule,use_regex))
 
     def add_frame(self, grid, level, caption, tooltip=None):
+        "Add a new Frame inside grid and a new Grid inside that Frame"
         lbl = Gtk.Label()
         lbl.set_halign(Gtk.Align.START)
         lbl.set_markup(caption)
@@ -688,11 +696,11 @@ class Tool(tool.Tool, ManagedWindow):
         if self.use_colors:
             frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(level))
 
-        grid.add(frame2)
+        if grid: grid.add(frame2)
         grid2 = self.MyGrid()
-        frame2.add(grid2) #
+        frame2.add(grid2)
         frame2.set_tooltip_text(tooltip)
-        return grid2
+        return frame2, grid2
 
     def on_filter_changed(self, combo):
 #         import random
@@ -713,21 +721,13 @@ class Tool(tool.Tool, ManagedWindow):
         self.current_filtername = filtername
         if self.frame:
             self.frame.destroy()
-        self.grid = self.MyGrid()
         self.entries = []
         self.filterparams = []
         self.regexes = []
         self.values = defaultdict(list)
 
-        lbl = Gtk.Label(filtername)
-        lbl.set_halign(Gtk.Align.START)
-        lbl.set_markup("<b>"+filtername+"</b>")
-
-        frame2 = Gtk.Frame()
-        frame2.set_label_widget(lbl)
-        if self.use_colors:
-            frame2.override_background_color(Gtk.StateFlags.NORMAL, self.get_color(0))
-        frame2.add(self.grid)
+        caption = "<b>"+filtername+"</b>"
+        frame2, self.grid = self.add_frame(None, level=0, caption=caption, tooltip=None)
 
         self.addfilter(self.grid, self.current_category, filtername, 1)
         self.box.add(frame2)
