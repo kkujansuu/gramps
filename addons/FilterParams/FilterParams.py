@@ -1042,7 +1042,7 @@ class ShowResults(ManagedWindow):
         """
         Needed by ManagedWindow to build the Windows menu
         """
-        return (_('Test run result'), None)
+        return (_('Test run result'), _('Test run result'))
 
     def button_press(self, _listview, event):
         # type: (Gtk.TreeView, Gtk. Event) -> bool
