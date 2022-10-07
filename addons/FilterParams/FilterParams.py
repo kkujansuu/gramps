@@ -68,7 +68,7 @@ from gramps.gui.editors import (
     EditRepository,
     EditSource,
 )
-from gramps.gui.editors.filtereditor import MyEntry  # , ShowResults
+from gramps.gui.editors.filtereditor import MyEntry
 from gramps.gui.editors.filtereditor import (
     EditFilter,
     MyBoolean,
@@ -149,12 +149,18 @@ class Tool(tool.Tool, ManagedWindow):
 
         self.dialog = self.create_gui()
         self.set_window(self.dialog, None, _("Filter Parameters"))
+        self.dbstate.connect('database-changed', self.database_changed)
 
     def build_menu_names(self, obj):
         """
         Needed by ManagedWindow to build the Windows menu
         """
         return ('FilterParams','FilterParams')
+
+    def database_changed(self, db):
+        print("database_changed", db)
+        self.db = db
+        self._change_db(db)
 
     def populate_filters(self, category, current_filtername=None):
         self.filterdb = gramps.gen.filters.CustomFilters
