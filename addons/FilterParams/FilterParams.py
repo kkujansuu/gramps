@@ -147,7 +147,6 @@ class Tool(tool.Tool, ManagedWindow):
         ]
         self.use_colors = True
 
-        self.filterdb = gramps.gen.filters.CustomFilters
         self.dialog = self.create_gui()
         self.set_window(self.dialog, None, _("Filter Parameters"))
 
@@ -159,7 +158,6 @@ class Tool(tool.Tool, ManagedWindow):
 
     def populate_filters(self, category, current_filtername=None):
         self.filterdb = gramps.gen.filters.CustomFilters
-        self.filterdb.load()
         filters = self.filterdb.get_filters_dict(category)
         self.filternames = []
         self.combo_filters.get_model().clear()
@@ -174,6 +172,10 @@ class Tool(tool.Tool, ManagedWindow):
             else:
                 self.combo_filters.set_active(0)
 
+    def filters_changed(self, namespace):
+        if namespace == self.current_category:
+            self.populate_filters(namespace, self.current_filtername)
+    
     def create_gui(self):
         self.filternames = []
         category = self.uistate.viewmanager.active_page.get_category()
@@ -226,6 +228,8 @@ class Tool(tool.Tool, ManagedWindow):
             self.current_category = "Person"
         i = self.categories.index(self.current_category)
         combo_categories.set_active(i)
+
+        self.uistate.connect('filters-changed', self.filters_changed)
 
         self.dialog.connect("delete-event", lambda x, y: self.close_clicked(self.dialog))
         self.dialog.show_all()
@@ -328,11 +332,13 @@ class Tool(tool.Tool, ManagedWindow):
         
     # methods copied from gramps/gui/editors/filtereditor.py
     def add_new_filter(self, obj):
+        self.filterdb = gramps.gen.filters.CustomFilters
         the_filter = GenericFilterFactory(self.current_category)()
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
                    the_filter, self.filterdb, selection_callback=self.selection_callback)
 
     def edit_filter(self, obj):
+        self.filterdb = gramps.gen.filters.CustomFilters
         the_filter = self.getfilter(self.current_category,  self.current_filtername)
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
                    the_filter, self.filterdb, selection_callback=self.selection_callback)
