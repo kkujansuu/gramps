@@ -63,6 +63,9 @@ It is also probably a good idea to name the filters generically, like above: "In
 
 New custom filters can be added by clicking the 'New' button. The selected filter can be edited with the 'Edit' button. These use the regular Gramps filter editor. The delete button deletes the selected filter. Cloning filters is not supported (at least not yet).
 
+Do not add, edit or delete filters simultaneously with FilterParams and the
+regular filter editor.
+
 #### ID linking
 
 A filter can contain the same ID parameter in several places. For example, this filter finds the grandparents of a person:
