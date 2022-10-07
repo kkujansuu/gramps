@@ -1032,6 +1032,12 @@ class ShowResults(ManagedWindow):
         glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
         self.show()
 
+    def build_menu_names(self, obj):
+        """
+        Needed by ManagedWindow to build the Windows menu
+        """
+        return (_('Test run result'), None)
+
     def button_press(self, _listview, event):
         # type: (Gtk.TreeView, Gtk. Event) -> bool
         if not self.db.db_is_open:
