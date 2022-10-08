@@ -595,16 +595,22 @@ class Tool(tool.Tool, ManagedWindow):
         Call addfilter to add a new frame inside the new grid to represent filter named 'filtername'.
         """
         filter = self.getfilter(category, filtername)
+        if filter is None:  # not found for some reason
+            lbl = Gtk.Label()
+            lbl.set_halign(Gtk.Align.START)
+            lbl.set_markup("<span color='red' size='larger'>" + _("Error: filter '%s' not found in namespace '%s'") % (filtername, category) + "</span>")
+            grid.add(lbl)
+            return
         caption = "<b>"+self.clean(filtername)+"</b>"
         if filter.comment.strip():
             caption += "\n"+self.clean(filter.comment)
         
         tooltip = filtername + "\n\n" + filter.comment
         frame, grid2 = self.add_frame(grid, level, caption, tooltip)
-        self.addfilter(grid2, category, filtername, level+1)
+        self.addfilter(grid2, category, filter, level+1)
         return frame
     
-    def addfilter(self, grid, category, filtername, level):
+    def addfilter(self, grid, category, filter, level):
         """
         Add the GUI widgets for the filter in the supplied Gtk.Grid.
         The grid is already contained in a Gtk.Frame with appropriate label.
@@ -619,13 +625,6 @@ class Tool(tool.Tool, ManagedWindow):
                 + _("Too deeply nested filters")
                 + "</span>"
             )
-            grid.add(lbl)
-            return
-        filter = self.getfilter(category, filtername)
-        if filter is None:  # not found for some reason
-            lbl = Gtk.Label()
-            lbl.set_halign(Gtk.Align.START)
-            lbl.set_markup("<span color='red' size='larger'>" + _("Error") +"</span>")
             grid.add(lbl)
             return
 
@@ -689,7 +688,7 @@ class Tool(tool.Tool, ManagedWindow):
                 lbl.set_margin_left(10)
                 grid2.add(lbl, False)
                 self.namespace = category
-                entry = self.get_widgets([caption], filtername)
+                entry = self.get_widgets([caption], filter.get_name())
                 entry.set_text(value)
                 self.entries.append((rule,paramindex,entry))
                 grid2.add(entry)
