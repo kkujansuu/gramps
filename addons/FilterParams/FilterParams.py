@@ -148,9 +148,11 @@ class Tool(tool.Tool, ManagedWindow):
         self.use_colors = True
         self.current_filtername = None
 
+        self.database_changed_key = self.dbstate.connect('database-changed', self.database_changed)
+        self.filters_changed_key = self.uistate.connect('filters-changed', self.filters_changed)
+
         self.dialog = self.create_gui()
         self.set_window(self.dialog, None, _("Filter Parameters"))
-        self.dbstate.connect('database-changed', self.database_changed)
 
     def build_menu_names(self, obj):
         """
@@ -161,7 +163,6 @@ class Tool(tool.Tool, ManagedWindow):
     def database_changed(self, db):
         print("database_changed", db)
         self.db = db
-        self._change_db(db)
 
     def populate_filters(self, category):
         self.filterdb = gramps.gen.filters.CustomFilters
@@ -235,8 +236,6 @@ class Tool(tool.Tool, ManagedWindow):
             self.current_category = "Person"
         i = self.categories.index(self.current_category)
         combo_categories.set_active(i)
-
-        self.filters_changed_key = self.uistate.connect('filters-changed', self.filters_changed)
 
         self.dialog.connect("delete-event", lambda x, y: self.close_clicked(self.dialog))
         self.dialog.show_all()
@@ -428,6 +427,7 @@ class Tool(tool.Tool, ManagedWindow):
     def close_clicked(self, _widget):
         #print("FilterParams closing")
         self.uistate.disconnect(self.filters_changed_key) 
+        self.dbstate.disconnect(self.database_changed_key)
         reload_custom_filters()  # so that our (non-saved) changes will be discarded
         self.dialog.destroy()
         self.dialog = None
