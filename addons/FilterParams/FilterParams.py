@@ -32,6 +32,7 @@ except:
 from gi.repository import Gdk, GObject, Gtk
 
 import gramps.gen.filters
+from gramps.gen.config import config as configman
 from gramps.gen.const import CUSTOM_FILTERS
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gen.datehandler import displayer
@@ -123,6 +124,10 @@ class Tool(tool.Tool, ManagedWindow):
         self.uistate = user.uistate
         self.dbstate = dbstate
         # self.track = []
+        self.config = configman.register_manager(name)
+        self.config.register("lastfilter.namespace", "")
+        self.config.register("lastfilter.filtername", "")
+        
         self.frame = None
         self.categories = [
             "Person",
@@ -146,11 +151,11 @@ class Tool(tool.Tool, ManagedWindow):
             Gdk.RGBA(0.99, 0.75, 0.99, 0.250),
         ]
         self.use_colors = True
-        self.current_filtername = None
 
         self.database_changed_key = self.dbstate.connect('database-changed', self.database_changed)
         self.filters_changed_key = self.uistate.connect('filters-changed', self.filters_changed)
 
+        self.initialize_category_and_filtername()
         self.dialog = self.create_gui()
         self.set_window(self.dialog, None, _("Filter Parameters"))
 
@@ -194,7 +199,8 @@ class Tool(tool.Tool, ManagedWindow):
         if namespace == self.current_category:
             self.populate_filters(namespace)
     
-    def create_gui(self):
+    def initialize_category_and_filtername(self):
+        self.current_filtername = None
         self.filternames = []
         category = self.uistate.viewmanager.active_page.get_category()
         if category == "People": category = "Person"
@@ -202,6 +208,15 @@ class Tool(tool.Tool, ManagedWindow):
         if category.endswith("s"): category = category[0:-1]
         self.current_category = category
 
+        self.config.load()
+        namespace = self.config.get("lastfilter.namespace")
+        if namespace:
+            self.current_category = namespace
+            filtername = self.config.get("lastfilter.filtername")
+            if filtername:
+                self.current_filtername = filtername
+
+    def create_gui(self):
         glade = Glade(toplevel='dialog1')
         self.dialog = glade.toplevel
         combo_categories = glade.get_child_object("combo_categories")
@@ -751,6 +766,11 @@ class Tool(tool.Tool, ManagedWindow):
         self.filterparams = []
         self.regexes = []
         self.values = defaultdict(list)
+        
+        self.config.set("lastfilter.namespace", self.current_category)
+        self.config.set("lastfilter.filtername", filtername)
+        self.config.save()
+        
 
         caption = "<b>"+filtername+"</b>"
 
