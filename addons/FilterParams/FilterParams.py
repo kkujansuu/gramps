@@ -164,6 +164,13 @@ class Tool(tool.Tool, ManagedWindow):
         print("database_changed", db)
         self.db = db
 
+
+    def enable_buttons(self, value):
+        self.edit_button.set_sensitive(value)
+        self.delete_button.set_sensitive(value)
+        self.execute_button.set_sensitive(value)
+        self.update_button.set_sensitive(value)
+
     def populate_filters(self, category):
         self.filterdb = gramps.gen.filters.CustomFilters
         filters = self.filterdb.get_filters_dict(category)
@@ -179,6 +186,9 @@ class Tool(tool.Tool, ManagedWindow):
                 self.combo_filters.set_active(current_index)
             else:
                 self.combo_filters.set_active(0)
+            self.enable_buttons(True)
+        else:
+            self.enable_buttons(False)
 
     def filters_changed(self, namespace):
         if namespace == self.current_category:
@@ -251,10 +261,6 @@ class Tool(tool.Tool, ManagedWindow):
         if self.frame:
             self.frame.destroy()
             self.frame = None
-        self.edit_button.set_sensitive(False)
-        self.delete_button.set_sensitive(False)
-        self.execute_button.set_sensitive(False)
-        self.update_button.set_sensitive(False)
         self.populate_filters(self.current_category)
 
     def get_color(self, level):
@@ -754,10 +760,6 @@ class Tool(tool.Tool, ManagedWindow):
         self.frame = frame2
         self.dialog.resize(1, 1)  # shrink to minimum size needed
         self.dialog.show_all()
-        self.edit_button.set_sensitive(True)
-        self.delete_button.set_sensitive(True)
-        self.execute_button.set_sensitive(True)
-        self.update_button.set_sensitive(True)
 
     class MyWidget:
         def __init__(self, widget):
