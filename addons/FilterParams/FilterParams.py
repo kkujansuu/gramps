@@ -349,6 +349,8 @@ class Tool(tool.Tool, ManagedWindow):
                     self.current_filtername, self.current_category)
 
     def update(self, current_filtername=None):
+        if current_filtername:
+            self.current_filtername = current_filtername
         self.filterdb.save()
         reload_custom_filters()
         self.uistate.emit('filters-changed', (self.current_category,))
