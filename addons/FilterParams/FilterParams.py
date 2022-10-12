@@ -146,6 +146,7 @@ class Tool(tool.Tool, ManagedWindow):
             Gdk.RGBA(0.99, 0.75, 0.99, 0.250),
         ]
         self.use_colors = True
+        self.current_filtername = None
 
         self.dialog = self.create_gui()
         self.set_window(self.dialog, None, _("Filter Parameters"))
@@ -162,7 +163,7 @@ class Tool(tool.Tool, ManagedWindow):
         self.db = db
         self._change_db(db)
 
-    def populate_filters(self, category, current_filtername=None):
+    def populate_filters(self, category):
         self.filterdb = gramps.gen.filters.CustomFilters
         filters = self.filterdb.get_filters_dict(category)
         self.filternames = []
@@ -172,15 +173,15 @@ class Tool(tool.Tool, ManagedWindow):
             self.filternames.append(filtername)
             self.combo_filters.append_text(filtername)
         if len(self.filternames) > 0:
-            if current_filtername in self.filternames:
-                current_index = self.filternames.index(current_filtername)
+            if self.current_filtername in self.filternames:
+                current_index = self.filternames.index(self.current_filtername)
                 self.combo_filters.set_active(current_index)
             else:
                 self.combo_filters.set_active(0)
 
     def filters_changed(self, namespace):
         if namespace == self.current_category:
-            self.populate_filters(namespace, self.current_filtername)
+            self.populate_filters(namespace)
     
     def create_gui(self):
         self.filternames = []
@@ -235,7 +236,7 @@ class Tool(tool.Tool, ManagedWindow):
         i = self.categories.index(self.current_category)
         combo_categories.set_active(i)
 
-        self.uistate.connect('filters-changed', self.filters_changed)
+        self.filters_changed_key = self.uistate.connect('filters-changed', self.filters_changed)
 
         self.dialog.connect("delete-event", lambda x, y: self.close_clicked(self.dialog))
         self.dialog.show_all()
@@ -330,7 +331,6 @@ class Tool(tool.Tool, ManagedWindow):
     def update(self, current_filtername=None):
         self.filterdb.save()
         reload_custom_filters()
-        self.populate_filters(self.current_category, current_filtername)
         self.uistate.emit('filters-changed', (self.current_category,))
 
     def selection_callback(self, filterdb, filtername):
@@ -427,6 +427,7 @@ class Tool(tool.Tool, ManagedWindow):
 
     def close_clicked(self, _widget):
         #print("FilterParams closing")
+        self.uistate.disconnect(self.filters_changed_key) 
         reload_custom_filters()  # so that our (non-saved) changes will be discarded
         self.dialog.destroy()
         self.dialog = None
