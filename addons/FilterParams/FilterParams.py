@@ -157,7 +157,9 @@ class Tool(tool.Tool, ManagedWindow):
 
         self.initialize_category_and_filtername()
         self.dialog = self.create_gui()
+
         self.set_window(self.dialog, None, _("Filter Parameters"))
+        self.dialog.show_all()
 
     def build_menu_names(self, obj):
         """
@@ -262,8 +264,11 @@ class Tool(tool.Tool, ManagedWindow):
         i = self.categories.index(self.current_category)
         combo_categories.set_active(i)
 
+        # put the dialog close to the parent window
+        x, y = self.parent_window.get_position()
+        self.dialog.move(x+100, y+100)
+            
         self.dialog.connect("delete-event", lambda x, y: self.close_clicked(self.dialog))
-        self.dialog.show_all()
         return self.dialog
 
     def on_category_changed(self, combo):
