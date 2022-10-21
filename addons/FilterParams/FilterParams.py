@@ -25,7 +25,14 @@ from collections import defaultdict
 from pprint import pprint
 
 try:
-    from typing import Any, Callable, Generator, Iterator, List, Optional, Tuple
+    from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Tuple
+    from gramps.gen.dbstate import DbState
+    from gramps.gen.db import DbTxn, DbGeneric
+    from gramps.gen.lib import BaseObject
+    from gramps.gen.user import User
+    from gramps.gui import DisplayState
+    from gramps.gen.filters import GenericFilter
+    from gramps.gen.filters.rules import Rule
 except:
     pass
 
@@ -162,23 +169,27 @@ class Tool(tool.Tool, ManagedWindow):
         self.dialog.show_all()
 
     def build_menu_names(self, obj):
+        # type: (Any) -> Tuple[str,str]
         """
         Needed by ManagedWindow to build the Windows menu
         """
         return ('FilterParams','FilterParams')
 
     def database_changed(self, db):
+        # type: (DbGeneric) -> None
         print("database_changed", db)
         self.db = db
 
 
     def enable_buttons(self, value):
+        # type: (bool) -> None
         self.edit_button.set_sensitive(value)
         self.delete_button.set_sensitive(value)
         self.execute_button.set_sensitive(value)
         self.update_button.set_sensitive(value)
 
     def populate_filters(self, category):
+        # type: (str) -> None
         self.filterdb = gramps.gen.filters.CustomFilters
         filters = self.filterdb.get_filters_dict(category)
         self.filternames = []
@@ -198,13 +209,15 @@ class Tool(tool.Tool, ManagedWindow):
             self.enable_buttons(False)
 
     def filters_changed(self, namespace):
+        # type: (str) -> None
         if namespace == self.current_category:
             self.populate_filters(namespace)
     
     def initialize_category_and_filtername(self):
+        # type: () -> None
         self.current_filtername = None
         self.filternames = []
-        category = self.uistate.viewmanager.active_page.get_category()
+        category = self.uistate.viewmanager.active_page.get_category() # type: str
         if category == "People": category = "Person"
         if category.endswith("ies"): category = category[0:-3] + "y"
         if category.endswith("s"): category = category[0:-1]
@@ -217,8 +230,10 @@ class Tool(tool.Tool, ManagedWindow):
             filtername = self.config.get("lastfilter.filtername")
             if filtername:
                 self.current_filtername = filtername
+        self.namespace = self.current_category
 
     def create_gui(self):
+        # type: () -> Gtk.Dialog
         glade = Glade(toplevel='dialog1')
         self.dialog = glade.toplevel
         combo_categories = glade.get_child_object("combo_categories")
@@ -272,6 +287,7 @@ class Tool(tool.Tool, ManagedWindow):
         return self.dialog
 
     def on_category_changed(self, combo):
+        # type: (Gtk.ComboBox) -> None
         tree_iter = combo.get_active_iter()
         if tree_iter is None: return
         model = combo.get_model()
@@ -284,9 +300,11 @@ class Tool(tool.Tool, ManagedWindow):
         self.populate_filters(self.current_category)
 
     def get_color(self, level):
+        # type: (int) -> str
         return self.colors[level % len(self.colors)]
 
     def get_all_handles(self, category):
+        # type: (str) -> Optional[List[str]]
         # method copied from gramps/gui/editors/filtereditor.py
         # Why use iter for some and get for others?
         if category == 'Person':
@@ -307,8 +325,11 @@ class Tool(tool.Tool, ManagedWindow):
             return self.db.get_repository_handles()
         elif category == 'Note':
             return self.db.get_note_handles()
+        else:
+            return None
 
     def execute_clicked(self, _widget):
+        # type: (str) -> None
         class User2:
             """
             Helper class to provide "can_cancel" functionality to
@@ -317,10 +338,12 @@ class Tool(tool.Tool, ManagedWindow):
             Code copied from gramps/gui/user.py.
             """
             def __init__(self, user):
+                # type: (User) -> None
                 self.parent = user.parent
                 self.uistate = user.uistate
                 self.parent = user.parent
             def begin_progress(self, title, message, steps):
+                # type: (str,str,int) -> None
                 # Parameter "can_cancel" added to ProgressMeter creation.
                 from gramps.gui.utils import ProgressMeter
                 self._progress = ProgressMeter(title, parent=self.parent, can_cancel=True)
@@ -329,17 +352,23 @@ class Tool(tool.Tool, ManagedWindow):
                 else:
                     self._progress.set_pass(message, mode=ProgressMeter.MODE_ACTIVITY)
             def step_progress(self):
+                # type: () -> None
                 res = self._progress.step()
                 if res:
                     self.end_progress()
                     raise StopIteration
             def end_progress(self):
+                # type: () -> None
                 self._progress.close()
                 self._progress = None
 
         user = User2(self.user)
 
         # code copied from gramps/gui/editors/filtereditor.py (test_clicked)
+        if not self.current_category:
+            return 
+        if not self.current_filtername:
+            return
         try:
             self.update_params()
             filter = self.getfilter(self.current_category, self.current_filtername)
@@ -354,6 +383,7 @@ class Tool(tool.Tool, ManagedWindow):
                     self.current_filtername, self.current_category)
 
     def update(self, current_filtername=None):
+        # type: (str) -> None
         if current_filtername:
             self.current_filtername = current_filtername
         self.filterdb.save()
@@ -361,29 +391,46 @@ class Tool(tool.Tool, ManagedWindow):
         self.uistate.emit('filters-changed', (self.current_category,))
 
     def selection_callback(self, filterdb, filtername):
+        # type: (str,str) -> None
         self.update(filtername)
         
     # methods copied from gramps/gui/editors/filtereditor.py
     def add_new_filter(self, obj):
+        # type: (str) -> None
         self.filterdb = gramps.gen.filters.CustomFilters
         the_filter = GenericFilterFactory(self.current_category)()
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
                    the_filter, self.filterdb, selection_callback=self.selection_callback)
 
     def edit_filter(self, obj):
+        # type: (str) -> None
+        if not self.current_category:
+            return 
+        if not self.current_filtername:
+            return
         self.filterdb = gramps.gen.filters.CustomFilters
         the_filter = self.getfilter(self.current_category,  self.current_filtername)
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
                    the_filter, self.filterdb, selection_callback=self.selection_callback)
 
     def clone_filter(self, obj): # not used
+        # type: (str) -> None
+        if not self.current_category:
+            return 
+        if not self.current_filtername:
+            return
         old_filter = self.getfilter(self.current_category,  self.current_filtername)
-        the_filter = GenericFilterFactory(self.namespace)(old_filter)
+        the_filter = GenericFilterFactory(self.current_category)(old_filter)
         the_filter.set_name('')
         EditFilter(self.current_category, self.dbstate, self.uistate, self.track,
                    the_filter, self.filterdb, update=self.update)
 
     def delete_filter(self, obj):
+        # type: (str) -> None
+        if not self.current_category:
+            return 
+        if not self.current_filtername:
+            return
         gfilter = self.getfilter(self.current_category,  self.current_filtername)
         name = gfilter.get_name()
         using_filters = self.check_recursive_filters(self.current_category, name)
@@ -401,6 +448,7 @@ class Tool(tool.Tool, ManagedWindow):
             self._do_delete_selected_filter()
 
     def _find_dependent_filters(self, space, gfilter, filter_set):
+        # type: (str,GenericFilter,Set[GenericFilter]) -> None
         """
         This method recursively calls itself to find all filters that
         depend on the given filter, either directly through one of the rules,
@@ -425,6 +473,7 @@ class Tool(tool.Tool, ManagedWindow):
                     break
 
     def check_recursive_filters(self, space, name):
+        # type: (str,str) -> List[GenericFilter]
         using_filters = []
         for the_filter in self.filterdb.get_filters(space):
             for rule in the_filter.get_rules():
@@ -435,13 +484,19 @@ class Tool(tool.Tool, ManagedWindow):
         return using_filters
 
     def _do_delete_selected_filter(self):
+        # type: () -> None
+        if not self.current_category:
+            return 
+        if not self.current_filtername:
+            return
         gfilter = self.getfilter(self.current_category,  self.current_filtername)
         self._do_delete_filter(self.current_category, gfilter)
         self.update()
 
     def _do_delete_filter(self, space, gfilter):
+        # type: (str,str) -> None
         # Find everything we need to remove
-        filter_set = set()
+        filter_set = set() # type: Set[GenericFilter]
         self._find_dependent_filters(space, gfilter, filter_set)
 
         # Remove what we found
@@ -449,10 +504,12 @@ class Tool(tool.Tool, ManagedWindow):
         list(map(filters.remove, filter_set))
 
     def update_clicked(self, _widget):
+        # type: (str) -> None
         #self.update_params()
         self.filterdb.save()
 
     def close_clicked(self, _widget):
+        # type: (str) -> None
         #print("FilterParams closing")
         self.uistate.disconnect(self.filters_changed_key) 
         self.dbstate.disconnect(self.database_changed_key)
@@ -462,6 +519,7 @@ class Tool(tool.Tool, ManagedWindow):
         self.close()
 
     def get_widgets(self,arglist,filtername):
+        # type: (List[str],str) -> MyEntry
         # Code copied from gramps/gui/editors/filtereditor.py
         pos = 0
         tlist = []
@@ -571,6 +629,7 @@ class Tool(tool.Tool, ManagedWindow):
         """
 
         def __init__(self):
+            # type: () -> None
             Gtk.Grid.__init__(self)
             self.set_margin_left(10)
             self.set_margin_top(0)
@@ -579,6 +638,7 @@ class Tool(tool.Tool, ManagedWindow):
             self.row = 0
             self.col = 0
         def add(self, widget, incrow=True):
+            # type: (str,bool) -> None
             self.attach(widget,self.col,self.row,1,1)
             if incrow:
                 self.row += 1
@@ -587,12 +647,13 @@ class Tool(tool.Tool, ManagedWindow):
                 self.col += 1
 
     def update_params(self, *args):
+        # type: (str) -> None
         for (filter,invert_checkbox,logical_combo) in self.filterparams:
             filter.set_invert(invert_checkbox.get_active())
             filter.set_logical_op(self.ops[logical_combo.widget.get_active()])
 
         for (rule, paramindex, entry) in self.entries:
-            value = str(entry.get_text())
+            value = str(entry.get_text())  # type: Any
             rule.list[paramindex] = value
         for (rule,use_regex) in self.regexes:
             value = use_regex.get_active()
@@ -608,17 +669,20 @@ class Tool(tool.Tool, ManagedWindow):
 
 
     def getfilter(self, category, filtername):
+        # type: (str,str) -> GenericFilter
         filters = self.filterdb.get_filters_dict(category)
         return filters.get(filtername)
 
 
     def clean(self, text):
+        # type: (str) -> str
         if len(text) > 80:
             text = text[0:77] + "..."
         text = text.replace("<","&lt;")
         return text
     
     def add_frame_and_filter(self, grid, category, filtername, level):
+        # type: (Gtk.Grid,str,str,int) -> Gtk.Frame
         """
         Add a new Frame inside grid and a new Grid inside that Frame.
         Call addfilter to add a new frame inside the new grid to represent filter named 'filtername'.
@@ -640,6 +704,7 @@ class Tool(tool.Tool, ManagedWindow):
         return frame
     
     def addfilter(self, grid, category, filter, level):
+        # type: (Gtk.Grid,str,GenericFilter,int) -> None
         """
         Add the GUI widgets for the filter in the supplied Gtk.Grid.
         The grid is already contained in a Gtk.Frame with appropriate label.
@@ -735,6 +800,7 @@ class Tool(tool.Tool, ManagedWindow):
                 self.regexes.append((rule,use_regex))
 
     def add_frame(self, grid, level, caption, tooltip=None):
+        # type: (Gtk.Grid,int,str,str) -> Tuple[Gtk.Frame, Gtk.Grid]
         "Add a new Frame inside grid and a new Grid inside that Frame"
         lbl = Gtk.Label()
         lbl.set_halign(Gtk.Align.START)
@@ -751,6 +817,7 @@ class Tool(tool.Tool, ManagedWindow):
         return frame2, grid2
 
     def on_filter_changed(self, combo):
+        # type: (Gtk.ComboBox) -> None
 #         import random
 #         random.shuffle(self.colors)
         tree_iter = combo.get_active_iter()
@@ -769,10 +836,10 @@ class Tool(tool.Tool, ManagedWindow):
         self.current_filtername = filtername
         if self.frame:
             self.frame.destroy()
-        self.entries = []
-        self.filterparams = []
-        self.regexes = []
-        self.values = defaultdict(list)
+        self.entries = []       # type: List[Tuple[Rule,int,Gtk.Entry]]
+        self.filterparams = []  # type: List[Tuple[GenericFilter,Gtk.CheckButton,Gtk.ComboBox]]
+        self.regexes = []       # type: List[Tuple[Rule,Gtk.CheckButton]]
+        self.values = defaultdict(list) # type: Dict[str, List[Tuple[Gtk.Entry,Rule,int]]]
         
         self.config.set("lastfilter.namespace", self.current_category)
         self.config.set("lastfilter.filtername", filtername)
@@ -985,6 +1052,7 @@ class ShowResults(ManagedWindow):
     """Adapted from gramps/gui/editors/filtereditor.py"""
 
     def __init__(self, dbstate, uistate, track, handle_list, filtname, namespace):
+        # type: (DbState,DisplayState,list,list,str,str) -> None
         ManagedWindow.__init__(self, uistate, track, self)
 
         self.dbstate = dbstate
@@ -1068,19 +1136,21 @@ class ShowResults(ManagedWindow):
         self.show()
 
     def build_menu_names(self, obj):
+        # type: (str) -> Tuple[str,str]
         """
         Needed by ManagedWindow to build the Windows menu
         """
         return (_('Test run result'), _('Test run result'))
 
     def button_press(self, _listview, event):
-        # type: (Gtk.TreeView, Gtk. Event) -> bool
+        # type: (Gtk.TreeView, Gtk. Event) -> None
         if not self.db.db_is_open:
-            return True
+            return
         if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS and event.button == 1:
             self.open_object(None)
 
     def open_object(self, _widget):
+        # type: (Gtk.Widget) -> None
         model, treeiter = self.treeview.get_selection().get_selected()
         if treeiter is None: return # list is empty
         row = list(model[treeiter])
@@ -1093,6 +1163,7 @@ class ShowResults(ManagedWindow):
             traceback.print_exc()
 
     def get_obj(self, handle):
+        # type: (str) -> Tuple[str,str,str,Any]
         name2 = ""
         if self.namespace == 'Person':
             person = self.db.get_person_from_handle(handle)
@@ -1147,6 +1218,7 @@ class ShowResults(ManagedWindow):
         return (gid, name, name2, obj)
 
     def sort_val_from_handle(self, handle):
+        # type: (str) -> Tuple[str,str]
         if self.namespace == 'Person':
             name = self.db.get_person_from_handle(handle).get_primary_name()
             sortname = name_displayer.sort_string(name)
@@ -1183,9 +1255,9 @@ class Options(tool.ToolOptions):
     """
 
     def __init__(self, name, person_id=None):
+        # type: (str,str) -> None
         tool.ToolOptions.__init__(self, name, person_id)
 
-        self.options_dict = dict(
-        )
-        self.options_help = dict(
-        )
+        self.options_dict = {} # type: Dict[str,Any]
+        self.options_help = {} # type: Dict[str,Any]
+        
