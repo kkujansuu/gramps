@@ -11,11 +11,19 @@ See the following screenshots.
 
 ![Family](Family.png)
 
+After selecting "Add multiple events" you get this dialog:
+
 ![Add_multiple_events_002](Add_multiple_events_001.png)
+
+"Select Event" opens the standard event selection dialog:
 
 ![Select_Event.png](Select_Event.png)
 
+The you get the Event Reference Editor where you can select the event role:
+
 ![Event_Reference_Editor](Event_Reference_Editor.png)
+
+The main dialog will be updated with details from the selected event. Then you can select the family members affected. Finally click OK:
 
 ![Add_multiple_events_002](Add_multiple_events_002.png)
 
