@@ -96,10 +96,13 @@ class AddEvents:
         if isinstance(selected_obj, Citation):
             person.add_citation(selected_obj.handle)
         if isinstance(selected_obj, Event):
-            event = Event(selected_obj)
-            event.handle = None
-            event.gramps_id = None
-            self.db.add_event(event, self.trans)
+            if self.checkbox_share.get_active():
+                event = selected_obj
+            else:
+                event = Event(selected_obj)
+                event.handle = None
+                event.gramps_id = None
+                self.db.add_event(event, self.trans)
             eref = EventRef()
             eref.ref = event.handle
             eref.role = self.selected_ref.role
