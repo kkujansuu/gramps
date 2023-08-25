@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2022 Kari Kujansuu
+# Copyright (C) 2023 Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ register(QUICKREPORT,
     id = 'add-multiple-events-family',
     name = _("Add multiple events"),
     description = _("Add multiple events"),
-    version = '1.0',
+    version = '1.1',
     gramps_target_version = major_version,
     status = STABLE,
     fname = 'add-multiple-events.py',
@@ -46,7 +46,7 @@ register(QUICKREPORT,
     id = 'add-multiple-events-person',
     name = _("Add multiple events"),
     description = _("Add multiple events"),
-    version = '1.0',
+    version = '1.1',
     gramps_target_version = major_version,
     status = STABLE,
     fname = 'add-multiple-events.py',

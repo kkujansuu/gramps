@@ -84,31 +84,32 @@ class AddEvents:
         self.get_options(self.obj)
 
     def add_events(self):
+        affected_handles = [handle for (handle,checkbox) in self.checks if checkbox.get_active()]
+        print("affected_handles",affected_handles)
+        self.add_events2(self.selected_obj, affected_handles, self.selected_ref.role, self.checkbox_share.get_active())
+        
+    def add_events2(self, selected_obj, affected_handles, role, share):
         # type: () -> None
-        with DbTxn(_("Adding events"), self. db) as self.trans:
-            for person_handle, check in self.checks:
-                if check.get_active():
-                    self.add_object_for_person(person_handle, self.selected_obj)
+        with DbTxn(_("Adding events"), self.db) as self.trans:
+            for person_handle in affected_handles:
+                self.add_object_for_person(person_handle, selected_obj, role, share)
+            if selected_obj.new_event and not share:
+                self.db.remove_event(selected_obj.handle, self.trans)
 
-    def add_object_for_person(self, person_handle, selected_obj):
+    def add_object_for_person(self, person_handle, selected_obj, role, share):
         # type: (str, Event) -> None
         person = self.db.get_person_from_handle(person_handle)
-        if isinstance(selected_obj, Citation):
-            person.add_citation(selected_obj.handle)
-        if isinstance(selected_obj, Event):
-            if self.checkbox_share.get_active():
-                event = selected_obj
-            else:
-                event = Event(selected_obj)
-                event.handle = None
-                event.gramps_id = None
-                self.db.add_event(event, self.trans)
-            eref = EventRef()
-            eref.ref = event.handle
-            eref.role = self.selected_ref.role
-            person.add_event_ref(eref)
-        if isinstance(selected_obj, Note):
-            person.add_note(selected_obj.handle)
+        if share:
+            event = selected_obj
+        else:
+            event = Event(selected_obj)
+            event.handle = None
+            event.gramps_id = None
+            self.db.add_event(event, self.trans)
+        eref = EventRef()
+        eref.ref = event.handle
+        eref.role = role
+        person.add_event_ref(eref)
         self.db.commit_person(person, self.trans)
 
 
@@ -280,6 +281,7 @@ class AddEvents:
         event = sel.run()
         if event:
             try:
+                event.new_event = False
                 ref = EventRef()
                 EditEventRef(
                     self.dbstate, self.uistate, [],
@@ -295,6 +297,7 @@ class AddEvents:
         try:
             ref = EventRef()
             event = Event()
+            event.new_event = True
             EditEventRef(
                 self.dbstate, self.uistate, [],
                 event, ref, self.eventref_callback)
