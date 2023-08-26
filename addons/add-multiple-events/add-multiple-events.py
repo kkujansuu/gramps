@@ -48,6 +48,12 @@ from gramps.gui.editors.editeventref import EditEventRef
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 _ = glocale.translation.gettext
 
+from gramps.gen.config import config as configman
+
+config = configman.register_manager("add-multiple-events")
+config.register("defaults.event_type", "")
+config.register("defaults.place", "")
+
 def run(db, document, db_obj):
     # type: (DbGeneric, TextBufDoc, Union[Person,Family]) -> None
     try:
@@ -66,6 +72,16 @@ class AddEvents:
         self.dbstate = self.uistate.viewmanager.dbstate
         self.document = document
         self.obj = obj
+
+        config.load()
+        self.default_event_type = config.get("defaults.event_type")
+
+        self.default_place_handle = None
+        place_gramps_id = config.get("defaults.place")
+        if place_gramps_id:
+            place = self.db.get_place_from_gramps_id(place_gramps_id)
+            if place:
+                self.default_place_handle = place.handle
 
     def run(self):
         # type: () -> None
@@ -236,6 +252,16 @@ class AddEvents:
         self.role_label.set_text("Role: " + str(eventref.role))
         self.selected_ref = eventref
         self.selected_obj = event
+
+        self.default_event_type = event.type.xml_str() 
+        config.set("defaults.event_type", self.default_event_type)
+
+        self.default_place_handle = event.place
+        place = self.db.get_place_from_handle(event.place)
+        config.set("defaults.place", place.gramps_id)
+        
+        config.save()
+
         self.ok_button.set_sensitive(True)
 
     def get_participants(self, handle):
@@ -298,6 +324,10 @@ class AddEvents:
             ref = EventRef()
             event = Event()
             event.new_event = True
+            if self.default_event_type:
+                event.type.set_from_xml_str(self.default_event_type)
+            if self.default_place_handle:
+                event.set_place_handle(self.default_place_handle)
             EditEventRef(
                 self.dbstate, self.uistate, [],
                 event, ref, self.eventref_callback)
