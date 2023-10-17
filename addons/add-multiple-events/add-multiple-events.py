@@ -19,6 +19,7 @@
 
 import html
 import traceback
+from gramps.gen.lib.eventtype import EventType
 
 try: # imports used only for type hints
     from typing import Tuple, List, Union
@@ -112,6 +113,21 @@ class AddEvents:
             if selected_obj.new_event and not share:
                 self.db.remove_event(selected_obj.handle, self.trans)
 
+
+    def get_birth_date(self, person):
+        birth_ref = person.get_birth_ref()
+        if not birth_ref: return None
+        birth_event = self.db.get_event_from_handle(birth_ref.ref)
+        if not birth_event: return None
+        return birth_event.get_date_object()
+    
+    def get_death_date(self, person):
+        death_ref = person.get_death_ref()
+        if not death_ref: return None
+        death_event = self.db.get_event_from_handle(death_ref.ref)
+        if not death_event: return None
+        return death_event.get_date_object()
+    
     def add_object_for_person(self, person_handle, selected_obj, role, share):
         # type: (str, Event) -> None
         person = self.db.get_person_from_handle(person_handle)
@@ -121,6 +137,15 @@ class AddEvents:
             event = Event(selected_obj)
             event.handle = None
             event.gramps_id = None
+            if event.type == EventType.RESIDENCE and event.date.is_compound():
+                birth_date = self.get_birth_date(person)
+                death_date = self.get_death_date(person)
+                if birth_date and event.date < birth_date:
+                    event.date.set_yr_mon_day(*birth_date.get_ymd(),remove_stop_date=False)
+                if death_date and event.date > death_date:
+                    event.date.set2_yr_mon_day(*death_date.get_ymd())
+                
+                
             self.db.add_event(event, self.trans)
         eref = EventRef()
         eref.ref = event.handle
