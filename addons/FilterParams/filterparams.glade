@@ -3,7 +3,7 @@
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkDialog" id="dialog1">
-    <property name="width_request">600</property>
+    <property name="width_request">900</property>
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
     <child type="titlebar">
@@ -14,6 +14,7 @@
         <property name="can_focus">False</property>
         <property name="margin_left">2</property>
         <property name="margin_top">5</property>
+        <property name="hexpand">True</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child internal-child="action_area">
@@ -136,19 +137,30 @@
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="errorMsg">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
                 </child>
                 <child>
                   <object class="GtkScrolledWindow">
                     <property name="height_request">500</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
                     <property name="shadow_type">in</property>
                     <child>
                       <object class="GtkViewport">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="hexpand">True</property>
                         <property name="vscroll_policy">natural</property>
                         <child>
                           <object class="GtkBox" id="box">
@@ -157,6 +169,7 @@
                             <property name="margin_left">4</property>
                             <property name="margin_start">2</property>
                             <property name="margin_end">4</property>
+                            <property name="hexpand">True</property>
                             <property name="orientation">vertical</property>
                             <child>
                               <placeholder/>
