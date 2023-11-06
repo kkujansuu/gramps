@@ -759,17 +759,13 @@ class Tool(tool.Tool, ManagedWindow):
                 grid2.add(entry)
                 
                 
-                if self.is_id(caption):  # link ID fields if they have the same value
+                if isinstance(entry, MyID):  # link ID fields if they have the same value
                     if value in self.values:
                         entry.set_sensitive(False)
                     self.values[value].append((entry,rule,paramindex))
                     entry.entry.connect("changed", self.update_params)
                 if isinstance(entry, MyFilters):  
                     entry.connect("changed", self.update_params)
-                    #entry.connect("changed", lambda _x: self.update_filter_reference(entry, paramindex, rule))
-                if isinstance(entry, MyFilters):
-                    #entry.connect("changed", lambda _x: self.update_filter_reference(entry, paramindex, rule))
-                    pass
                 if self.is_filter_reference(clsname, caption, entry):
                     matchcategory = self.get_matchcategory(clsname, caption, entry)
                     if matchcategory == "":
@@ -780,7 +776,6 @@ class Tool(tool.Tool, ManagedWindow):
                 else:
                     pass
                     
-
             if rule.allow_regex:
                 use_regex = Gtk.CheckButton(label=_('Use regular expressions'))
                 use_regex.set_tooltip_text(regex_tip)
@@ -788,12 +783,6 @@ class Tool(tool.Tool, ManagedWindow):
                 grid2.add(use_regex)
                 self.regexes.append((rule,use_regex))
 
-    def is_id(self, caption):
-        if caption == _('ID:'): return True
-        for obj in ["Person", "Family", "Event", "Place", "Citation", "Source", "Repository", "Media", "Note"]:
-            if caption == _(obj + ' ID:'): return True
-        return False
-        
         
     def is_filter_reference(self, clsname, caption, entry):
         if isinstance(entry, MyFilters): return True
