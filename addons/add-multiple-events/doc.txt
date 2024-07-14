@@ -1,0 +1,46 @@
+https://gramps.discourse.group/t/shared-events-selecting-family-members/3897#post_1
+
+moorob
+1 pv
+Gramps 5.1.6. Is there a way to select an event say census and then have a way to select family members to share that event with or do I just keep using the clipboard and paste to each person individually. I tried using Forms but when I change role, the form disappears or only shows the primary.
+
+=================
+
+
+I needed this feature for my own research so I created an addon to help. This is mainly an experimental "prototype" but maybe it works for you.
+
+The idea is that the addon uses the "Quick view" feature for people and families: for example, if you right-click a family and select "Quick View" you get a small popup menu containing a couple of choices ("All family events" and "Family references"). The addon adds a new choice "Add multiple events" to the popup menu. Choosing that will open a dialog allowing you to select an existing event or create a new one. You can specify the family members the event should be added to.
+
+By default, a copy of the the original event is created for each person. This copy contains references to the same notes and citations etc as the original event (i.e. the notes and citations are not copied, only references). Tags and attributes of the original event are not copied to the new events at all.
+
+If you select the "Share event" checkbox then the same event (existing or newly created) is used for all persons. I.e. they would share the same event. This makes sense e.g. for a census event or immigration - but would probably not make sense for a residence event that spans a longer time. This is because the time span would be different for different family members.
+
+The event reference editor is displayed after you select or create the event. This is only used to specify the role for the new event references. If you are selecting an existing event then you should not edit the event part (the lower part) of the dialog - this would change the original event.
+
+---
+
+Note that if you create a new event and then cancel the operation then a dangling (unreferenced) event will remain in the database. These can be found and removed with the tool "Family Tree Repair > Remove Unused Objects".
+
+----
+The recently created or modified events can be found in the event selection dialog by clicking twice the header "Last Change".
+
+---
+The same idea could in the future be used to add e.g. multiple citations and notes in the same way. It is not clear if such a feature could easily be added to this addon or should there be separate addons for various object types.
+
+
+>>>>
+
+Events are copied and all notes and citations etc are also copied. Attributes and tags are ot copied.
+
+----
+
+
+ all events and citations stored on the clipboard and a list of all the family members. The user can select to which family members the events will be added. See the attached image.
+
+For a person the dialog display the person's parents, spouses and children.
+
+---
+
+events" to the popup menu. Choosing that will open a dialog showing all events and citations stored on the clipboard and a list of all the family members. The user can select to which family members the events will be added. See the attached image.
+
+For a person the dialog display the person's parents, spouses and children.

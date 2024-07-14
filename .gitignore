@@ -1,6 +1,15 @@
 /.pydevproject
-<<<<<<< HEAD
 __pycache__
-=======
-__pycache__
->>>>>>> refs/heads/testing
+*~
+*.yaml
+.todo.txt
+.project
+.obs
+/.pre-commit-config.yamlx
+
+.gitignore
+pylintrc
+run_mypy.sh
+todo.txt
+filterparams.zip
+test

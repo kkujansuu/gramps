@@ -3,6 +3,7 @@
 	<name>gramps</name>
 	<comment>Gramps addons</comment>
 	<projects>
+		<project>gramps 5.1</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
