@@ -20,6 +20,7 @@
 
 # This program uses the Whoosh library by Matt Chaput, see https://whoosh.readthedocs.io/en/latest/
 
+import html
 import os
 import shutil
 import time
@@ -317,6 +318,7 @@ class Tool(tool.Tool):
                 hltext = res.highlights("content", text=text)
                 hltext2 = hltext.replace(ColorFormatter.PREFIX, "").replace(ColorFormatter.SUFFIX, "")
                 if not text.startswith(hltext2): hltext = "..." + hltext
+                hltext = html.escape(hltext)
                 self.listmodel.append([proxy.gramps_id, objtype, hltext, handle])
                 n += 1
             t2 = time.time()
