@@ -25,6 +25,7 @@ import os
 import shutil
 import time
 import traceback
+import uuid
 
 #import whoosh
 import whoosh.highlight
@@ -67,14 +68,16 @@ class ColorFormatter(whoosh.highlight.Formatter):
         Highlighting with color, see https://stackoverflow.com/questions/3629386/set-cellrenderertext-foreground-color-when-a-row-is-highlighted
     """
 
-    PREFIX = '<span foreground="red">'
-    SUFFIX = '</span>'
+    PREFIX1 = "["+uuid.uuid4().hex+"["
+    SUFFIX1 = "]"+uuid.uuid4().hex+"]"
+    PREFIX2 = '<span foreground="red">'
+    SUFFIX2 = '</span>'
     def format_token(self, text, token, replace=False):
         # Use the get_text function to get the text corresponding to the token
         tokentext = whoosh.highlight.get_text(text, token, replace)
 
         # Return the text as you want it to appear in the highlighted string
-        return ColorFormatter.PREFIX + tokentext + ColorFormatter.SUFFIX
+        return ColorFormatter.PREFIX1 + tokentext + ColorFormatter.SUFFIX1
         return '<span foreground="red">%s</span>' % tokentext
         
 # -------------------------------------------------------------------------
@@ -316,9 +319,13 @@ class Tool(tool.Tool):
                 proxy.from_handle(self.db, handle)
                 text = proxy.content(self.db)
                 hltext = res.highlights("content", text=text)
-                hltext2 = hltext.replace(ColorFormatter.PREFIX, "").replace(ColorFormatter.SUFFIX, "")
+                hltext2 = hltext.replace(ColorFormatter.PREFIX1, "").replace(ColorFormatter.SUFFIX1, "")
                 if not text.startswith(hltext2): hltext = "..." + hltext
+
                 hltext = html.escape(hltext)
+                hltext = (hltext.replace(ColorFormatter.PREFIX1, ColorFormatter.PREFIX2)
+                          .replace(ColorFormatter.SUFFIX1, ColorFormatter.SUFFIX2)) 
+
                 self.listmodel.append([proxy.gramps_id, objtype, hltext, handle])
                 n += 1
             t2 = time.time()
