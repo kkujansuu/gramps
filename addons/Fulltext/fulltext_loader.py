@@ -107,7 +107,7 @@ def callback(db, sqlstring):
             writer.delete_by_term("handle", handle)
 
     if sqlstring.startswith("UPDATE ") and "blob_data" in sqlstring:
-        print(sqlstring)
+        # print(sqlstring)
         # UPDATE note SET blob_data = x'800495cd...' WHERE handle = 'f9e7c3ae9d734e31b1879b0bc4c'
         objtype = sqlstring.split()[1]
         if objtype not in fulltext_objects.OBJTYPES:

@@ -88,7 +88,7 @@ class NoteProxy(ProxyBase):
 
 class PersonProxy(ProxyBase):
     def __init__(self):
-        self.obj = Person()
+        self.obj = None #Person()
 
     def iterfunc(self, db):
         return db.iter_people()
@@ -237,6 +237,22 @@ class MediaProxy(ProxyBase):
         self.from_handle(dbstate.db, handle)
         EditMedia(dbstate, uistate, [], self.obj)
 
+class UrlProxy:
+    def content(self, db):
+        names = []
+        for url in self.obj.urls:
+            name = url.path + ": " + url.desc
+            names.append(name)
+        return " / ".join(names)
+
+class PersonUrlProxy(UrlProxy, PersonProxy):
+    pass
+
+class PlaceUrlProxy(UrlProxy, PlaceProxy):
+    pass
+
+class RepositoryUrlProxy(UrlProxy, RepositoryProxy):
+    pass
 
 
 OBJTYPES = {
@@ -248,6 +264,9 @@ OBJTYPES = {
     "citation": CitationProxy,
     "repository": RepositoryProxy,
     "media": MediaProxy,
+    "personurl": PersonUrlProxy,
+    "placeurl": PlaceUrlProxy,
+    "repourl": RepositoryUrlProxy,
 }
 
 

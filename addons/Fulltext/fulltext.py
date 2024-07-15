@@ -33,7 +33,7 @@ from whoosh.index import create_in, open_dir
 from whoosh.fields import ID, TEXT, Schema
 from whoosh.qparser import QueryParser
 from whoosh.lang import morph_en
-from whoosh.analysis import filters, StandardAnalyzer
+from whoosh.analysis import filters, StandardAnalyzer, RegexTokenizer, LowercaseFilter
 
 from gi.repository import Gtk, Gdk
 
@@ -78,7 +78,6 @@ class ColorFormatter(whoosh.highlight.Formatter):
 
         # Return the text as you want it to appear in the highlighted string
         return ColorFormatter.PREFIX1 + tokentext + ColorFormatter.SUFFIX1
-        return '<span foreground="red">%s</span>' % tokentext
         
 # -------------------------------------------------------------------------
 #
@@ -153,7 +152,7 @@ class Tool(tool.Tool):
 
         self.indexdir = os.path.join(dbpath, dbid, "indexdir")
 
-        analyzer = StandardAnalyzer(stoplist=None)  # don't use stop words
+        analyzer = RegexTokenizer(r"\w+") | LowercaseFilter()
         self.schema = Schema(
             objtype=TEXT(stored=True),
             title=TEXT(stored=True),
