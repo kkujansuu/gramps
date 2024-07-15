@@ -13,6 +13,8 @@ With this tool you can do fast global searches within a family tree. The search 
 - Citations (the volume/page field)
 - Sources (source title)
 - Repositories (name)
+- URLs (the Internet tab) for people, places and repositories
+- attributes for people 
 
 The search uses the Whoosh search library (https://whoosh.readthedocs.io) - the same as Gramps Web (https://grampsweb.org). The library code is included with the tool. The tool works only with SQLite databases (i.e. not with the old BSDDB databases).
 
@@ -60,7 +62,9 @@ The search term can be:
 * the words may contain wildcards (* = zero or more letters, ? = exactly one letter)
 * phrase search in quotes: "word1 word2"
 * phrase search with closeness: "word1 word2"~3 = at most 3 words between word1 and word2
-* fuzzy search: append a tilde: word~ matches words that differ by at most one letter from the search word
+* fuzzy search: append a tilde and an optional number:
+  * word~ matches words that differ by at most one letter from the search word
+  * word~2 matches words that differ by at most two letters from the search word
 
 
 You can restrict the search by object type or limit the number of search results.
