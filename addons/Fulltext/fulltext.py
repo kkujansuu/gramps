@@ -152,7 +152,7 @@ class Tool(tool.Tool):
 
         self.indexdir = os.path.join(dbpath, dbid, "indexdir")
 
-        analyzer = RegexTokenizer(r"\w+") | LowercaseFilter()
+        analyzer = RegexTokenizer(r"\w+|@|\$|£|€|#|=|\[|\]") | LowercaseFilter()
         self.schema = Schema(
             objtype=TEXT(stored=True),
             title=TEXT(stored=True),
