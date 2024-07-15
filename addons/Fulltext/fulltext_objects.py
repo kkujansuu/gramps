@@ -254,6 +254,16 @@ class PlaceUrlProxy(UrlProxy, PlaceProxy):
 class RepositoryUrlProxy(UrlProxy, RepositoryProxy):
     pass
 
+class AttributeProxy:
+    def content(self, db):
+        names = []
+        for attr in self.obj.attribute_list:
+            name = str(attr.type) + " = " + attr.value
+            names.append(name)
+        return " / ".join(names)
+
+class PersonAttributeProxy(AttributeProxy, PersonProxy):
+    pass
 
 OBJTYPES = {
     "note": NoteProxy,
@@ -267,6 +277,7 @@ OBJTYPES = {
     "personurl": PersonUrlProxy,
     "placeurl": PlaceUrlProxy,
     "repourl": RepositoryUrlProxy,
+    "personattr": PersonAttributeProxy,
 }
 
 
