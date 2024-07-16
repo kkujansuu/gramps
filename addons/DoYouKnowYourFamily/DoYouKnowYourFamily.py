@@ -161,7 +161,6 @@ class Tool(tool.Tool):
         box2.pack_start(lbl2, False, False, 0)
 
         choices = eval(num_choices_alternatives)
-        print(repr(choices))
         choice_buttons = []
         but = None
         for choice in choices:
@@ -175,7 +174,6 @@ class Tool(tool.Tool):
         box3 = Gtk.VBox()
         lbl3 = Gtk.Label()
         box4 = Gtk.VBox()
-        #box3a = Gtk.VBox()
 
         lbl3.set_markup("<b>" + _("Questions") + "</b>")
         lbl3.set_halign(Gtk.Align.START)
@@ -209,10 +207,6 @@ class Tool(tool.Tool):
         sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
 
         box3.add(sw)
-        sw.add(box3b)
-        
-        box.add(box1)
-        box.add(box2)
         box.add(box3)
 
         header.set_markup("<b>" + _("Game that asks random questions about your family tree") + "</b>")
@@ -298,7 +292,6 @@ class Tool(tool.Tool):
     def refresh_methods(self):
         # type: () -> None
         methods = Questions.__dict__.keys()
-        #print(methods)
         self.methods = [m for m in methods if m in self.selected]
 
 
@@ -326,13 +319,13 @@ class Tool(tool.Tool):
             method = getattr(self.questions, m)
             try:
                 q = method()
-                q.name = m
             except StopIteration:
                 return
             except:
                 traceback.print_exc()
                 q = None
             if q:
+                q.name = m
                 self.ask(q)
                 self.methods.remove(m)
                 return
@@ -417,7 +410,6 @@ class Tool(tool.Tool):
             else:
                 self.next()
             return
-        #print(_("Unknown response type: ") + str(rspcode))
 
 
 
@@ -495,7 +487,6 @@ class Base:
             if gender not in ('M','F','U'):
                 raise RuntimeError(_("Invalid gender: ") + gender)
             filter += " and gender == '{}'".format(gender)
-        #print(filter)
         persons = [] # type: List[Person]
         while len(persons) < numchoices:
             retries += 1
@@ -556,11 +547,8 @@ class Base:
         yearrange = list(range(1600, current_year()+1))
         yearrange.remove(year)
         years = random.sample(yearrange, self.numchoices-1)
-        #print("years",years)
         years.append(year)
-        #random.shuffle(years)
         years.sort()
-        #print(years)
         return [str(y) for y in years]
 
 def pname(p):
@@ -578,7 +566,6 @@ class Questions(Base):
                   ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             year = row[1][0:4]
@@ -602,7 +589,6 @@ class Questions(Base):
                   ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             year = row[2][0:4]
@@ -626,7 +612,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             place = row[1]
@@ -653,7 +638,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             place = row[1]
@@ -680,7 +664,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             selected_person = row[0]
             name = pname(row[0])
@@ -721,7 +704,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             selected_person = row[0]
             name = pname(row[0])
@@ -762,7 +744,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             spouse = row[1]
@@ -785,7 +766,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             father = row[1]
@@ -807,7 +787,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             mother = row[1]
@@ -849,7 +828,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             father = pname(row[0])
             mother = pname(row[1])
@@ -872,7 +850,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
         for row in result:
             name = pname(row[0])
             fathers = [p for p in row[1:] if p]
@@ -966,8 +943,6 @@ class Questions(Base):
                 ).rows
         except:
             return None
-        #print("result:", result)
-        #pprint(result)
         occupmap = defaultdict(list)
         allpeople = []
         for row in result:
@@ -1006,7 +981,6 @@ class Questions(Base):
         except:
             traceback.print_exc()
             return None
-        #print("result:", result)
         for row in result:
             person = row[0]
             places = row[1]
@@ -1031,7 +1005,6 @@ class Questions(Base):
         except:
             traceback.print_exc()
             return None
-        #print("result:", result)
         placemap = defaultdict(list)
         allpeople = []
         for row in result:
@@ -1055,37 +1028,6 @@ class Questions(Base):
                 )
         return None
 
-    def xxxq_includes(self, question = _("Which place includes {}?")):
-    # type: (str) -> Optional[Q]
-        handles = self.randomhandles("Places")
-        try:
-            result = supertool_execute(dbstate=self.dbstate, category="Places", handles=handles,
-                filter="len(enclosed_by) > 0",
-                expressions="name, type, enclosed_by",
-                ).rows
-        except:
-            traceback.print_exc()
-            return None
-        print("result:", result)
-        for row in result:
-            place = row[0]
-            type = row[1]
-            enclosed_by = row[2]
-            choices1 = self.randomplaceobjects(excluded=enclosed_by, numchoices=50)#self.numchoices-1)
-            selected = random.choice(enclosed_by)
-            choices = []
-            for p in choices1:
-                if len(choices) == self.numchoices-1: break
-                if p.type == selected.type:
-                    choices.append(place)
-            choices.append(selected)
-            if len(choices) < self.numchoices: return None  # fails
-            return Q(question.format(place),
-                [(p.longname,p) for p in choices],
-                selected.longname,
-            )
-        return None
-
     def q_includes(self, question = _("Which place includes {}?")):
     # type: (str) -> Optional[Q]
         handles = self.randomhandles("Places")
@@ -1097,15 +1039,12 @@ class Questions(Base):
         except:
             traceback.print_exc()
             return None
-        print("result:", result)
         if len(result) == 0: return None
         row = random.choice(result)
-        print("row:", row)
         placename = row[0]
         type = row[1]
         enclosed_by = row[2]
         selected = random.choice(enclosed_by)
-        print("selected:", selected)
 
         try:
             result = supertool_execute(dbstate=self.dbstate, category="Places", handles=handles,
@@ -1119,8 +1058,6 @@ class Questions(Base):
         random.shuffle(result)
             
         choices = []
-        print("result2:")
-        pprint(result)
         for row in result:
             p = row[0]
             if len(choices) == self.numchoices-1: break
@@ -1146,7 +1083,6 @@ class Questions(Base):
         except:
             traceback.print_exc()
             return None
-        #print("result:", result)
         for row in result:
             place = row[0]
             encloses = row[1]
