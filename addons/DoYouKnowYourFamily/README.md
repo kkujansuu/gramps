@@ -1,6 +1,6 @@
 # Do You Know Your Family
 v0.9.0<br>
-14 July 2024<br>
+16 July 2024<br>
 Author: kari.kujansuu@gmail.com<br>
 
 ## Introduction
@@ -41,10 +41,10 @@ This game requires that SuperTool is installed (version 1.3.3 or later).
 
 The family tree must contain enough objects for the game to make sense. At least a couple dozen families and people with birth and death dates and places. Best to use an actual realistic family tree.
 
-The questions about occupation assume that the occupation is stored in the description field of an event of type Occupation.
+The questions about occupation assume that the occupation is stored in the description field of an Occupation event.
 
 The questions about where people lived assume that there are corresponding Residence events.
 
-The questions about where people lived assume that there are corresponding Residence events.
+The questions about places including other places assume that the corresponding 'Enclosed by' relations are defined (i.e. a place hierarchy exists).
 
 Sometimes the program may be unable to generate a question. This might be because the family tree is too small or the types of questions are too limited.
