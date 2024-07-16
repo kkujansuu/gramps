@@ -1,0 +1,196 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-15 12:57+0200\n"
+"PO-Revision-Date: 2024-01-21 18:47+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: fi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.3\n"
+
+#: DoYouKnowYourFamily.py:48
+msgid "End of Game"
+msgstr "Peli päättyi"
+
+#: DoYouKnowYourFamily.py:53
+msgid "New game"
+msgstr "Uusi peli"
+
+#: DoYouKnowYourFamily.py:54
+msgid "Quit"
+msgstr "Lopeta"
+
+#: DoYouKnowYourFamily.py:96
+msgid "The database is too small"
+msgstr "Sukupuu on liian pieni"
+
+#: DoYouKnowYourFamily.py:96
+msgid "Need at least {} individuals."
+msgstr "Tarvitaan ainakin {} henkilöä."
+
+#: DoYouKnowYourFamily.py:101 DoYouKnowYourFamily.py:221
+#: DoYouKnowYourFamily.gpr.py:36
+msgid "Do You Know Your Family"
+msgstr "Tunnetko sukusi"
+
+#: DoYouKnowYourFamily.py:108
+msgid "Number of Questions"
+msgstr "Kysymysten lukumäärä"
+
+#: DoYouKnowYourFamily.py:122
+msgid "Number of Choices"
+msgstr "Vaihtoehtojen lukumäärä"
+
+#: DoYouKnowYourFamily.py:137
+msgid "Questions"
+msgstr "Kysymykset"
+
+#: DoYouKnowYourFamily.py:141
+msgid "select all"
+msgstr "Valitse kaikki"
+
+#: DoYouKnowYourFamily.py:145
+msgid "Start"
+msgstr "Aloita"
+
+#: DoYouKnowYourFamily.py:162 DoYouKnowYourFamily.gpr.py:37
+msgid "Game that asks random questions about your family tree"
+msgstr "Peli joka kysyy satunnaisia kysymyksiä sukupuustasi"
+
+#: DoYouKnowYourFamily.py:222 DoYouKnowYourFamily.py:363
+msgid "Choose"
+msgstr "Valitse"
+
+#: DoYouKnowYourFamily.py:276
+msgid "Correct answers: {}/{}"
+msgstr "Oikeita vastauksia: {}/{}"
+
+#: DoYouKnowYourFamily.py:312
+msgid "Error"
+msgstr "Virhe"
+
+#: DoYouKnowYourFamily.py:312
+msgid "Unexpected error, try again"
+msgstr "Odottamaton virhe, yritä uudestaan"
+
+#: DoYouKnowYourFamily.py:389
+msgid "Correct!"
+msgstr "Oikein!"
+
+#: DoYouKnowYourFamily.py:391
+msgid ""
+"Incorrect\n"
+"Correct choice is: {}"
+msgstr ""
+"Väärin\n"
+"Oikea vastaus: {}"
+
+#: DoYouKnowYourFamily.py:392
+msgid "Next"
+msgstr "Seuraava"
+
+#: DoYouKnowYourFamily.py:445 DoYouKnowYourFamily.py:462
+#: DoYouKnowYourFamily.py:480 DoYouKnowYourFamily.py:498
+#: DoYouKnowYourFamily.py:508 DoYouKnowYourFamily.py:525
+msgid "Not found"
+msgstr "Ei löydy"
+
+#: DoYouKnowYourFamily.py:473
+msgid "Invalid gender: "
+msgstr "Väärä sukupuoli:"
+
+#: DoYouKnowYourFamily.py:546
+msgid "When was {} born?"
+msgstr "Milloin {} syntyi?"
+
+#: DoYouKnowYourFamily.py:570
+msgid "When did {} die?"
+msgstr "Milloin {} kuoli?"
+
+#: DoYouKnowYourFamily.py:594
+msgid "Where was {} born?"
+msgstr "Missä {} syntyi?"
+
+#: DoYouKnowYourFamily.py:621
+msgid "Where did {} die?"
+msgstr "Missä {} kuoli?"
+
+#: DoYouKnowYourFamily.py:648
+msgid "Who was born in {}?"
+msgstr "Kuka syntyi paikassa {}?"
+
+#: DoYouKnowYourFamily.py:688
+msgid "Who died in {}?"
+msgstr "Kuka kuoli paikassa {}?"
+
+#: DoYouKnowYourFamily.py:728
+msgid "Who is the spouse of {}?"
+msgstr "Kuka on henkilön {} puoliso?"
+
+#: DoYouKnowYourFamily.py:751
+msgid "Who is the father of {}?"
+msgstr "Kuka on henkilön {} isä?"
+
+#: DoYouKnowYourFamily.py:773
+msgid "Who is the mother of {}?"
+msgstr "Kuka on henkilön {} äiti?"
+
+#: DoYouKnowYourFamily.py:794
+msgid "Who is a child of {}"
+msgstr "Kuka on henkilön {} lapsi?"
+
+#: DoYouKnowYourFamily.py:815
+msgid "Who is a child of {} and {}"
+msgstr "Kuka on henkilöiden {} ja {} lapsi?"
+
+#: DoYouKnowYourFamily.py:838
+msgid "Who is the grandfather of {}?"
+msgstr "Kuka on henkilön {} isoisä?"
+
+#: DoYouKnowYourFamily.py:862
+msgid "Who is the grandmother of {}?"
+msgstr "Kuka on henkilön {} isoäiti?"
+
+#: DoYouKnowYourFamily.py:885
+msgid "Who is the grandchild of {}?"
+msgstr "Kuka on henkilön {} lapsenlapsi?"
+
+#: DoYouKnowYourFamily.py:909
+msgid "What was the occupation of {}?"
+msgstr "Mikä oli henkilön {} ammatti?"
+
+#: DoYouKnowYourFamily.py:931
+msgid "Whose occupation was {}?"
+msgstr "Kenen ammatti oli {}?"
+
+#: DoYouKnowYourFamily.py:970
+msgid "Where did {} live?"
+msgstr "Missä {} asui?"
+
+#: DoYouKnowYourFamily.py:995
+msgid "Who lived in {}?"
+msgstr "Kuka asui paikassa {}?"
+
+#: DoYouKnowYourFamily.py:1034
+msgid "Which place includes {}?"
+msgstr "Mikä paikka sisältää paikan {}?"
+
+#: DoYouKnowYourFamily.py:1058
+msgid "Which place is included in {}?"
+msgstr "Mikä paikka sisältyy paikkaan {}?"
+
+#: DoYouKnowYourFamily.gpr.py:26
+msgid "Games"
+msgstr "Pelit"
+
+#~ msgid "OK"
+#~ msgstr "OK"
