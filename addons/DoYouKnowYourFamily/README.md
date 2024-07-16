@@ -9,6 +9,10 @@ This is a simple single-user game that tests your knowledge of your family tree 
 
 Each question has a number of alternative choices and you should choose the correct answer. Only one choice is correct.
 
+The game is found in the Tools menu under the Games submenu:
+
+![Game](images/Do-You-Know-Your-Family.png)
+
 At startup the game displays these options. You can choose the number questions asked, the number of choices in each question
 and also the types of questions asked:
 
@@ -32,7 +36,7 @@ After all questions the number of correct answers is shown:
 
 You can play again or quit.
 
-Is this the world's first game within a genealogy application?
+Is this the world's first game within a genealogy application? (No it isn't, see e.g. https://www.familysearch.org/en/blog/familysearch-interactive-apps).
 
 
 ## Notes
