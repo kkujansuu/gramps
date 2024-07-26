@@ -110,6 +110,8 @@ def update_recent_items(self, dbid, obj):
     namespace = get_namespace(self)
     recent_data = get_recent_data()
     olddata = recent_data.get(dbid, {}).get(namespace, [])
+    if not obj or not obj.handle:
+        return # prevent null values
     value = obj.handle
     if value in olddata:
         olddata.remove(value)
