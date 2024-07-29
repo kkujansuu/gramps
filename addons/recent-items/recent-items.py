@@ -55,13 +55,16 @@ from gi.repository import Gtk, Gdk
 
 from gramps.gen.config import CONFIGMAN as config
 from gramps.gen.errors import HandleError
-from gramps.gen.lib import Source, Citation
+from gramps.gen.lib import Source, Citation, Person
 
+from gramps.gui.editors.editperson import EditPerson
 from gramps.gui.editors.editprimary import EditPrimary
 from gramps.gui.editors.editreference import EditReference
+from gramps.gui.editors.editfamily import FastFemaleFilter, FastMaleFilter
 from gramps.gui.editors import EditPlaceRef
 from gramps.gui.selectors.selectplace import SelectPlace
 from gramps.gui.selectors.baseselector import BaseSelector
+from gramps.gui.widgets import SimpleButton
 
 # ------------------------------------------------------------------------
 #
@@ -88,7 +91,7 @@ def load_on_reg(dbstate, uistate, plugin):
     # patch some classes
     if not hasattr(BaseSelector, "orig_init"):
         BaseSelector.orig_init = BaseSelector.__init__
-    BaseSelector.__init__ = new_init
+    BaseSelector.__init__ = lambda self, *args, **kwargs: new_init(self, dbstate, *args, **kwargs)
 
     if not hasattr(BaseSelector, "orig_run"):
         BaseSelector.orig_run = BaseSelector.run
@@ -120,6 +123,17 @@ def update_recent_items(self, dbid, obj):
     if dbid not in recent_data:
         recent_data[dbid] = {}
     recent_data[dbid][namespace] = olddata
+    if namespace == "Person":
+        if obj.gender == Person.MALE:
+            ns1 = "Person-M"
+        if obj.gender == Person.FEMALE:
+            ns1 = "Person-F"
+        olddata = recent_data[dbid].get(ns1, [])
+        if value in olddata:
+            olddata.remove(value)
+        olddata.insert(0, value)
+        olddata = olddata[0:MAXITEMS]
+        recent_data[dbid][ns1] = olddata
     with open(fname, "w") as f:
         print(json.dumps(recent_data, indent=4), file=f)
 
@@ -149,7 +163,7 @@ def get_namespace(self):
 # ------------------------------------------
 
 
-def new_init(self, *args, **kwargs):
+def new_init(self, dbstate, *args, **kwargs):
     """
     This method will replace the __init__ method in BaseSelector.
 
@@ -183,17 +197,28 @@ def new_init(self, *args, **kwargs):
     tree.set_headers_visible(False)
 
     BaseSelector.add_columns(self, tree)
+    filterobj = self.filter[1]
+
     namespace = get_namespace(self)
+    if namespace == "Person":
+        if isinstance(filterobj, FastFemaleFilter):
+            namespace = "Person-F"
+        if isinstance(filterobj, FastMaleFilter):
+            namespace = "Person-M"
     dbid = self.db.get_dbid()
     recent_data = get_recent_data()
     olddata = recent_data.get(dbid, {}).get(
         namespace, []
     )  # list of handles for this database and this namespace
+    
+    
     for handle in olddata:
         try:
             obj = self.get_from_handle_func()(handle)
         except HandleError:
             continue  # object probably deleted, skip
+        if namespace == "Person" and filterobj and not filterobj.match(handle, self.db):
+            continue        
         data = obj.serialize()
         values = [""] * numcolumns
         for colnam, width, coltype, index in self.get_column_titles():
@@ -220,9 +245,19 @@ def new_init(self, *args, **kwargs):
     msg = "<b>" + _("Recent items:") + "</b>"
     if len(model) == 0:  # no recent items to display
         msg += " " + _("None")
-    header = Gtk.Label(msg)
-    header.set_use_markup(True)
-    header.set_halign(Gtk.Align.START)
+    header = Gtk.HBox()
+    header.set_size_request(-1,-1)
+    lbl = Gtk.Label(msg)
+    lbl.set_use_markup(True)
+    lbl.set_halign(Gtk.Align.START)
+    but = Gtk.Button("New")
+    but.connect("clicked", lambda _widget: new_item(self, dbstate))
+
+    but = SimpleButton('list-add',  lambda _widget: new_item(self, dbstate))
+    but.set_relief(Gtk.ReliefStyle.NORMAL)
+
+    header.pack_start(lbl, False, True, 0)
+    header.pack_start(but, False, True, 5)
     recent_box.add(header)
     recent_box.add(tree)
     recent_box.show_all()
@@ -241,6 +276,18 @@ def new_init(self, *args, **kwargs):
     )
 
 
+def new_item(self, dbstate):
+    print("new")
+    p = Person()
+#     class DbState: pass
+#     dbstate = DbState()
+#     dbstate.db = self.db 
+    track = []
+    EditPerson(dbstate, self.uistate, track, p, callback=callback)
+    
+def callback(obj):
+    print("new obj",obj)
+    
 def get_citation_title(db, citation):
     src = db.get_source_from_handle(citation.get_reference_handle())
     return src.title + ": " + citation.page
