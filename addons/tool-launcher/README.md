@@ -12,7 +12,7 @@ The top part of the gramplet shows the selected tools as clickable links.
 
 The bottom parts contains all tool categories. You can open and close the categories and use the checkboxes to select which tools are shown in the top part.
 
-The gramplet is especially useful if you are developing a new tool and need to frequently start it to test its behaviour after modifications. In that case you should also use the "Reload plugins" tool (https://github.com/kkujansuu/gramps/tree/master/addons/reload-plugins) which reloads a new version of the tool code from disk:
+The gramplet is especially useful if you are developing a new tool and need to frequently start it to test its behaviour after modifications. In that case you should also use the "Reload plugins" tool (https://github.com/kkujansuu/gramps/tree/master/addons/reload_plugins) which reloads a new version of the tool code from disk:
 
 ![Image](images/tool-launcher-2.png)
 
