@@ -70,7 +70,13 @@ class Launcher(Gramplet):
         self.populate_pluginsframe()
         self.populate_linkframe()
 
+        pmgr = GuiPluginManager.get_instance()
+        pmgr.connect("plugins-reloaded", self.plugins_reloaded)
         self.root.show_all()
+        
+    def plugins_reloaded(self):
+        self.populate_pluginsframe()
+        self.populate_linkframe()
         
     def create_gui(self):
         vbox = Gtk.VBox(orientation=Gtk.Orientation.VERTICAL)

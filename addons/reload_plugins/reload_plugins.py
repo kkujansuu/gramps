@@ -27,9 +27,10 @@ import traceback
 from pprint import pprint
 
 from gramps.gen.const import GRAMPS_LOCALE as glocale
+from gramps.gen.plug._pluginreg import PluginRegister, PTYPE
 
 from gramps.gui.plug import tool
-from gramps.gen.plug._pluginreg import PluginRegister, PTYPE
+from gramps.gui.pluginmanager import GuiPluginManager
 
 try:
     _trans = glocale.get_addon_translator(__file__)
@@ -93,8 +94,12 @@ class ReloadTool(tool.Tool):
             user.uistate.viewmanager.do_reg_plugins(dbstate, user.uistate, rescan=True)
             user.uistate.uimanager.update_menu()
 
-        reload_plugin_modules()  # Gramps 5.2 requires this !?
+        reload_plugin_modules()  # Gramps 5.2 seems to require this !?
         remove_duplicate_rules() # rules are not reloaded 
+
+        pmgr = GuiPluginManager.get_instance()
+        pmgr.reload_plugins()
+        pmgr.emit("plugins-reloaded")
                         
         curtime = time.strftime("%H:%M:%S", time.localtime(time.time()))
         msg = "Plugins reloaded at " + curtime
