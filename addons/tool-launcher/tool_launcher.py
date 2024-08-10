@@ -137,22 +137,19 @@ class Launcher(Gramplet):
         self.expanders = []
         self.items = []
         
-        for cat, pdlist in sorted(categories.items()):                
-            exp = Gtk.Expander(label=cat)
+        for catname, pdlist in sorted(categories.items()):                
+            exp = Gtk.Expander(label=catname)
             exp.set_margin_top(10)
             exp.set_resize_toplevel(True)
-            exp.set_expanded(cat not in closed_categories)
+            exp.set_expanded(catname not in closed_categories)
             exp.connect("notify::expanded", self.expanders_changed)
            
-            lbl = Gtk.Label()
-            lbl.set_markup('<a href="#">' + cat + "</a>")
-            store = Gtk.ListStore(bool,str, str)
-            
             grid = Gtk.Grid()
             grid.set_row_spacing(2)
-            
+            active_found = False
             for row, pd in enumerate(sorted(pdlist, key=attrgetter('name_lower'))):
                 active = pd.id in toollist
+                if active: active_found = True
 
                 cb = Gtk.CheckButton()
                 cb.set_margin_left(10)
@@ -170,23 +167,26 @@ class Launcher(Gramplet):
                 self.items.append((pd.name, cb, pd))
 
             exp.add(grid)
-            self.expanders.append(exp)
+            if active_found:
+                exp.set_use_markup(True)
+                exp.set_label("<b>" + html.escape(catname) + "</b>")
+            self.expanders.append((catname,exp))
             vbox.add(exp)
 
         self.pluginsframe.add(vbox)
         vbox.show_all()
-        return vbox
 
     def expanders_changed(self, expander, expanded):
         closed_categories = []
-        for exp in self.expanders:
+        for catname,exp in self.expanders:
             if not exp.get_expanded():
-                closed_categories.append(exp.get_label())
+                closed_categories.append(catname)
         config.set("defaults.closed_categories", closed_categories)
         config.save()
                 
     def selected(self, widget):
         self.populate_linkframe()
+        self.populate_pluginsframe()
 
     def run_tool(self, widget, event):
         pdata = widget.pdata
