@@ -253,11 +253,11 @@ def new_init(self, dbstate, *args, **kwargs):
     but = Gtk.Button("New")
     but.connect("clicked", lambda _widget: new_item(self, dbstate))
 
-    but = SimpleButton('list-add',  lambda _widget: new_item(self, dbstate))
-    but.set_relief(Gtk.ReliefStyle.NORMAL)
+#     but = SimpleButton('list-add',  lambda _widget: new_item(self, dbstate))
+#     but.set_relief(Gtk.ReliefStyle.NORMAL)
 
     header.pack_start(lbl, False, True, 0)
-    header.pack_start(but, False, True, 5)
+#    header.pack_start(but, False, True, 5)
     recent_box.add(header)
     recent_box.add(tree)
     recent_box.show_all()
