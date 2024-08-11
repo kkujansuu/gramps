@@ -124,16 +124,18 @@ def update_recent_items(self, dbid, obj):
         recent_data[dbid] = {}
     recent_data[dbid][namespace] = olddata
     if namespace == "Person":
+        ns1 = None
         if obj.gender == Person.MALE:
             ns1 = "Person-M"
         if obj.gender == Person.FEMALE:
             ns1 = "Person-F"
-        olddata = recent_data[dbid].get(ns1, [])
-        if value in olddata:
-            olddata.remove(value)
-        olddata.insert(0, value)
-        olddata = olddata[0:MAXITEMS]
-        recent_data[dbid][ns1] = olddata
+        if ns1:
+            olddata = recent_data[dbid].get(ns1, [])
+            if value in olddata:
+                olddata.remove(value)
+            olddata.insert(0, value)
+            olddata = olddata[0:MAXITEMS]
+            recent_data[dbid][ns1] = olddata
     with open(fname, "w") as f:
         print(json.dumps(recent_data, indent=4), file=f)
 
