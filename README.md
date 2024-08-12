@@ -9,7 +9,6 @@ These are experimental in nature and some of them are intended for developers, n
 ### Add Multiple Events
 	Add an event for multiple people 
 
-
 ### Do You Know Your Family
     A game within Gramps
 
