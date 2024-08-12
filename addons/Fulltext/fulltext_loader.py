@@ -60,21 +60,24 @@ def load_on_reg(dbstate, uistate, plugin):
 
 def db_changed(db):
     dbid = db.get_dbid()
-    print("dbid", dbid)
     if dbid == "":
         return
     indexdir = os.path.join(dbpath, dbid, "indexdir")
     if os.path.exists(indexdir):
-        print(indexdir, "exists", db.get_dbname())
+        #print(indexdir, "exists", db.get_dbname())
         enable_trace(db)
     else:
-        print(indexdir, "does not exist", db.get_dbname())
+        #print(indexdir, "does not exist", db.get_dbname())
+        pass
 
 
 def enable_trace(db):
     connection = db.dbapi._Connection__connection
     connection.set_trace_callback(lambda sqlstring: callback(db, sqlstring))
 
+def disable_trace(db):
+    connection = db.dbapi._Connection__connection
+    connection.set_trace_callback(None)
 
 def callback(db, sqlstring):
     if sqlstring.startswith("INSERT INTO ") and "blob_data" in sqlstring:
@@ -87,6 +90,7 @@ def callback(db, sqlstring):
         proxy = fulltext_objects.getproxy(objtype)
         proxy.from_hexdata(hexdata)
         ix = get_ix(db)
+        if ix is None: return
         with ix.writer() as writer:
             writer.add_document(
                 objtype=objtype,
@@ -103,6 +107,7 @@ def callback(db, sqlstring):
             return
         handle = sqlstring.split()[-1][1:-1]
         ix = get_ix(db)
+        if ix is None: return
         with ix.writer() as writer:
             writer.delete_by_term("handle", handle)
 
@@ -117,6 +122,7 @@ def callback(db, sqlstring):
         proxy.from_hexdata(hexdata)
         # print(sqlstring)
         ix = get_ix(db)
+        if ix is None: return
         with ix.writer() as writer:
             writer.update_document(
                 objtype=objtype,
@@ -124,15 +130,17 @@ def callback(db, sqlstring):
                 handle=proxy.handle,
                 content=proxy.content(db),
             )
-            print("-", objtype, proxy.gramps_id, repr(proxy.handle), repr(proxy.content))
+            # print("-", objtype, proxy.gramps_id, repr(proxy.handle), repr(proxy.content))
 
 
 def get_ix(db):
     dbid = db.get_dbid()
     indexdir = os.path.join(dbpath, dbid, "indexdir")
-    print("get_ix:", indexdir)
     try:
         ix = open_dir(indexdir)
     except:
         traceback.print_exc()
+        if not os.path.exists(indexdir): # index as been deleted
+            disable_trace(db)
+        return None
     return ix

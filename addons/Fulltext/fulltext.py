@@ -225,6 +225,7 @@ class Tool(tool.Tool):
             shutil.rmtree(self.indexdir)
         self.box1.show_all()
         self.box2.hide()
+        fulltext_loader.disable_trace(self.db)
 
     def build_index(self, _widget):
         QuestionDialog("Confirm rebuild","", "Build",  self.build_index1)
