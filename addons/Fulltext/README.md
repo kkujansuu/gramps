@@ -78,4 +78,8 @@ The list can be sorted by clicking the headers. Double clicking a row opens the 
 ![Fulltext](images/Fulltext-editor.png)
 
 
+## Notes
+
+Importing a large number of objects might be slow if the search index is being used. Then every object has to added to the search index. It might be faster to first delete the search index, do the import and then recreate the index.
+
 
