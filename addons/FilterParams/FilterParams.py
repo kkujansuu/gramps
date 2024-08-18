@@ -506,7 +506,7 @@ class Tool(tool.Tool, ManagedWindow):
 
     def update_clicked(self, _widget):
         # type: (str) -> None
-        #self.update_params()
+        self.update_params()
         self.filterdb.save()
 
     def close_clicked(self, _widget):
