@@ -373,7 +373,7 @@ class Tool(tool.Tool, ManagedWindow):
         try:
             self.update_params()
             filter = self.getfilter(self.current_category, self.current_filtername)
-            handle_list = filter.apply(self.db, self.get_all_handles(self.current_category), user=user)
+            handle_list = filter.apply(self.dbstate.db, id_list=None, user=user)
         except StopIteration:
             return
         except FilterError as msg:
