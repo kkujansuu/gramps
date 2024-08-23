@@ -177,8 +177,7 @@ class Tool(tool.Tool, ManagedWindow):
 
     def database_changed(self, db):
         # type: (DbGeneric) -> None
-        print("database_changed", db)
-        self.db = db
+        self.close() # can't handle database change
 
 
     def enable_buttons(self, value):
