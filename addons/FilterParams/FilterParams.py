@@ -177,7 +177,9 @@ class Tool(tool.Tool, ManagedWindow):
 
     def database_changed(self, db):
         # type: (DbGeneric) -> None
-        self.close() # can't handle database change
+        # print("database_changed", db, db.is_open())
+        if db.is_open():
+            self.close_clicked(None) # can't handle database change
 
 
     def enable_buttons(self, value):
@@ -510,7 +512,6 @@ class Tool(tool.Tool, ManagedWindow):
 
     def close_clicked(self, _widget):
         # type: (str) -> None
-        #print("FilterParams closing")
         self.uistate.disconnect(self.filters_changed_key) 
         self.dbstate.disconnect(self.database_changed_key)
         reload_custom_filters()  # so that our (non-saved) changes will be discarded
