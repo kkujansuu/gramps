@@ -25,11 +25,18 @@
 
 # -------------------------------------------------------------------------
 #
+# Python modules
+#
+# -------------------------------------------------------------------------
+import logging
+import textwrap
+
+# -------------------------------------------------------------------------
+#
 # GNOME modules
 #
 # -------------------------------------------------------------------------
 from gi.repository import Gtk
-import logging
 
 # -------------------------------------------------------------------------
 #
@@ -188,7 +195,10 @@ class SimpleSidebar(BaseSidebar):
 
         # add text if requested
         if use_text:
-            label = Gtk.Label(label=view_name)
+            width = 20
+            lines = textwrap.wrap(view_name, width, break_long_words=False)
+            labeltext = "\n".join(lines)
+            label = Gtk.Label(label=labeltext)
             label.show()
             hbox.pack_start(label, False, True, 0)
 
