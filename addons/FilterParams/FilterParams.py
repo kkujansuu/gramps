@@ -515,8 +515,6 @@ class Tool(tool.Tool, ManagedWindow):
         self.uistate.disconnect(self.filters_changed_key) 
         self.dbstate.disconnect(self.database_changed_key)
         reload_custom_filters()  # so that our (non-saved) changes will be discarded
-        self.dialog.destroy()
-        self.dialog = None
         self.close()
 
     def get_widgets(self,arglist,filtername):
