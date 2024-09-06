@@ -22,6 +22,7 @@
 
 import html
 import os
+import re
 import shutil
 import time
 import traceback
@@ -95,6 +96,7 @@ class Tool(tool.Tool):
         tool.Tool.__init__(self, dbstate, options_class, name)
         self.run()
 
+
     def run(self):
         # type: () -> None
         self.glade = Glade(also_load=["liststore1"])
@@ -151,6 +153,7 @@ class Tool(tool.Tool):
             return
 
         self.indexdir = os.path.join(dbpath, dbid, "indexdir")
+        self.wordfile = self.indexdir + ".words"
 
         analyzer = RegexTokenizer(r"\w+|@|\$|£|€|#|=|\[|\]") | LowercaseFilter()
         self.schema = Schema(
@@ -167,6 +170,8 @@ class Tool(tool.Tool):
             self.box2.show_all()
             self.query_field.set_sensitive(True)
             self.search_button.set_sensitive(True)
+            self.set_entry_completion()
+            
         elif hasattr(self.db, "dbapi"):
             self.box1.show_all()
             self.box2.hide()
@@ -179,6 +184,28 @@ class Tool(tool.Tool):
 
         self.glade.toplevel.show()
 
+    def set_entry_completion(self):
+        self.completion_list = Gtk.ListStore(str)
+
+        entry_completion = Gtk.EntryCompletion()
+        entry_completion.set_inline_completion(True)
+        entry_completion.set_inline_selection(True)
+        entry_completion.set_text_column(0)
+
+        entry_completion.set_model(self.completion_list)
+        self.query_field.set_completion(entry_completion)
+
+        try:
+            words = open(self.wordfile).readlines()
+        except:
+            words = []
+        
+        self.completion_list.clear()
+        for text in words:
+            self.completion_list.append([text.strip()])
+                    
+            
+    
     def db_changed(self, db):
         self.glade.toplevel.destroy()
 
@@ -240,6 +267,7 @@ class Tool(tool.Tool):
         
         canceled = False
         n = 0
+        words = set()
         with ix.writer() as writer:
             for objtype in sorted(fulltext_objects.OBJTYPES):
                 if canceled: break
@@ -251,16 +279,25 @@ class Tool(tool.Tool):
                         canceled = True
                         break
                     proxy.obj = obj
+                    content=proxy.content(self.db)
                     writer.add_document(
                         objtype=objtype,
                         title=proxy.gramps_id,
                         handle=proxy.handle,
-                        content=proxy.content(self.db),
+                        content=content,
                     )
+                    words.update(re.split(r"\W+", content))
                     n += 1
 
             progress.set_pass("Closing", 1)
-            
+            with open(self.wordfile, "wt") as f:
+                for w in sorted(words):
+                    print(w, file=f)
+        
+        self.completion_list.clear()
+        for w in words:
+            self.completion_list.append([w])
+                    
         progress.close()
         t2 = time.time()
         msg = "Indexed {} objects in {} seconds".format(n, int(t2 - t1))
@@ -270,6 +307,7 @@ class Tool(tool.Tool):
         self.box2.show()
 
         fulltext_loader.enable_trace(self.db)
+
 
     def dosearch(self, _widget):
         query_text = self.query_field.get_text().strip()
