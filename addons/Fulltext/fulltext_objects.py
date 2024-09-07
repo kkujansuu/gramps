@@ -88,7 +88,7 @@ class NoteProxy(ProxyBase):
 
 class PersonProxy(ProxyBase):
     def __init__(self):
-        self.obj = None #Person()
+        self.obj = Person()
 
     def iterfunc(self, db):
         return db.iter_people()
