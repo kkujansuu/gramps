@@ -55,7 +55,7 @@ def load_on_reg(dbstate, uistate, plugin):
     import whoosh
 
     dbstate.connect("database-changed", db_changed)
-    print("whoosh loaded")
+    # print("whoosh loaded")
 
 
 def db_changed(db):
