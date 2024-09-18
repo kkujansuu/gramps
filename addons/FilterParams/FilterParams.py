@@ -520,6 +520,9 @@ class Tool(tool.Tool, ManagedWindow):
     def get_widgets(self,arglist,filtername):
         # type: (List[str],str) -> MyEntry
         # Code copied from gramps/gui/editors/filtereditor.py
+
+        # filterdb = gramps.gen.filters.CustomFilters  # hack so that infamilyrule works
+
         pos = 0
         tlist = []
         for v in arglist:
@@ -690,6 +693,7 @@ class Tool(tool.Tool, ManagedWindow):
 
         Saves the widget in three arrays (entries, filterparams and regexes).
         """
+
         if level > 20:
             lbl = Gtk.Label()
             lbl.set_halign(Gtk.Align.START)
@@ -738,13 +742,15 @@ class Tool(tool.Tool, ManagedWindow):
 
             frame, grid2 = self.add_frame(grid, level, "<b>"+self.clean(_(rule.name))+"</b>\n" + self.clean(_(rule.description)),
                                    tooltip=_(rule.name) + "\n\n" + _(rule.description))
-            for paramindex,(caption, value) in enumerate(zip(rule.labels,rule.list)):
-                if type(caption) is tuple:
-                    caption = caption[0]
+            for paramindex,(caption1, value) in enumerate(zip(rule.labels,rule.list)):
+                if type(caption1) is tuple:
+                    caption = caption1[0]
+                else:
+                    caption = caption1
                 lbl = Gtk.Label(caption)
                 lbl.set_halign(Gtk.Align.START)
                 self.namespace = category
-                entry = self.get_widgets([caption], filter.get_name())
+                entry = self.get_widgets([caption1], filter.get_name())
                 entry.set_text(value)
                 entry.set_halign(Gtk.Align.START)
                 self.entries.append((rule,paramindex,entry))
