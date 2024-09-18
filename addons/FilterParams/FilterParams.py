@@ -361,7 +361,8 @@ class Tool(tool.Tool, ManagedWindow):
                     raise StopIteration
             def end_progress(self):
                 # type: () -> None
-                self._progress.close()
+                if self._progress:
+                    self._progress.close()
                 self._progress = None
 
         user = User2(self.user)
@@ -378,6 +379,7 @@ class Tool(tool.Tool, ManagedWindow):
         except StopIteration:
             return
         except FilterError as msg:
+            traceback.print_exc()
             (msg1, msg2) = msg.messages()
             ErrorDialog(msg1, msg2, parent=self.window)
             return
