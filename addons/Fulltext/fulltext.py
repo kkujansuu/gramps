@@ -294,7 +294,7 @@ class Tool(tool.Tool):
                 for w in sorted(words):
                     print(w, file=f)
         
-        self.completion_list.clear()
+        self.set_entry_completion()
         for w in words:
             self.completion_list.append([w])
                     
