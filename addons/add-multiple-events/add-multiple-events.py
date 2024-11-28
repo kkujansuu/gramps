@@ -42,6 +42,7 @@ from gramps.gen.lib import Family
 from gramps.gen.lib import Note
 from gramps.gen.lib import Person
 
+from gramps.gui.dialog import ErrorDialog
 from gramps.gui.dialog import OkDialog
 from gramps.gui.selectors.selectorfactory import SelectorFactory
 from gramps.gui.editors.editeventref import EditEventRef
@@ -94,6 +95,9 @@ class AddEvents:
         scrolled_window = text_view.get_parent()
         vbox = scrolled_window.get_parent()
         dialog = vbox.get_parent()
+        if not isinstance(dialog, Gtk.Dialog):
+            ErrorDialog(_("Error"), _("This quick view does not work in the Quick View gramplet"))
+            return
         self.parent = dialog.get_parent()
         dialog.close()
         dialog.destroy()
