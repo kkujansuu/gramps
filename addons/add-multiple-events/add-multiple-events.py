@@ -471,6 +471,7 @@ class AddEvents:
                 value = _(value)
             lbl = Gtk.Label(value)
             lbl.set_halign(Gtk.Align.START)
+            lbl.set_line_wrap(True)
             grid.attach(lbl, colnum, grid.rownum, 1, 1)
         grid.rownum += 1
 
