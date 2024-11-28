@@ -431,9 +431,10 @@ class AddEvents:
         self.default_event_type = event.type.xml_str() 
         config.set("defaults.event_type", self.default_event_type)
 
-        self.default_place_handle = event.place
-        place = self.db.get_place_from_handle(event.place)
-        config.set("defaults.place", place.gramps_id)
+        if event.place:
+            self.default_place_handle = event.place
+            place = self.db.get_place_from_handle(event.place)
+            config.set("defaults.place", place.gramps_id)
         
         config.save()
 
