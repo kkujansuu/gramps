@@ -31,26 +31,26 @@ from gramps.version import major_version
 
 register(QUICKREPORT,
     id = 'add-multiple-events-family',
-    name = _("Add multiple events"),
-    description = _("Add multiple events"),
-    version = '1.1',
+    name = _("Add events to Family members"),
+    description = _("Add or share events to members of a Family"),
+    version = '1.2',
     gramps_target_version = major_version,
     status = STABLE,
     fname = 'add-multiple-events.py',
-    authors = ["KKu"],
+    authors = ["Kari Kujansuu"],
     category = CATEGORY_QR_FAMILY,
     runfunc = 'run'
 )
 
 register(QUICKREPORT,
     id = 'add-multiple-events-person',
-    name = _("Add multiple events"),
-    description = _("Add multiple events"),
-    version = '1.1',
+    name = _("Add events to extended Family"),
+    description = _("Add or share events to a Person and their spouses, children, parents"),
+    version = '1.2',
     gramps_target_version = major_version,
     status = STABLE,
     fname = 'add-multiple-events.py',
-    authors = ["KKu"],
+    authors = ["Kari Kujansuu"],
     category = CATEGORY_QR_PERSON,
     runfunc = 'run'
 )

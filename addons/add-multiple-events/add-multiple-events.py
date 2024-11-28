@@ -19,7 +19,8 @@
 
 import html
 import traceback
-from gramps.gen.lib.eventtype import EventType
+from pprint import pprint
+
 
 try: # imports used only for type hints
     from typing import Tuple, List, Union
@@ -34,6 +35,9 @@ from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.display.place import displayer as place_displayer
 from gramps.gen.errors import WindowActiveError
+
+from gramps.gen.lib.eventtype import EventType
+from gramps.gen.lib.eventroletype import EventRoleType
 
 from gramps.gen.lib import Citation
 from gramps.gen.lib import Event
@@ -53,14 +57,16 @@ _ = glocale.translation.gettext
 from gramps.gen.config import config as configman
 
 config = configman.register_manager("add-multiple-events")
+config.register("defaults.event", "")
 config.register("defaults.event_type", "")
+config.register("defaults.event_role", "")
 config.register("defaults.place", "")
 
 def run(db, document, db_obj):
     # type: (DbGeneric, TextBufDoc, Union[Person,Family]) -> None
     try:
         obj = AddEvents(db, document, db_obj)
-        obj.run()
+        ok = obj.run()
     except Exception as e:
         traceback.print_exc()
         OkDialog(_("Unexpected error"), str(e))
@@ -74,48 +80,135 @@ class AddEvents:
         self.dbstate = self.uistate.viewmanager.dbstate
         self.document = document
         self.obj = obj
-
+        
         config.load()
         self.default_event_type = config.get("defaults.event_type")
 
+        self.default_event = None
+        dbid_event = config.get("defaults.event")
+        if dbid_event:
+            dbid, gramps_id = dbid_event.split(":", maxsplit=1)
+            if dbid == self.db.get_dbid():
+                self.default_event = self.db.get_event_from_gramps_id(gramps_id)
+
+        self.default_role = None
+        role = config.get("defaults.event_role")
+        if role:
+            self.default_role = EventRoleType()
+            self.default_role.set_from_xml_str(role)
+
         self.default_place_handle = None
-        place_gramps_id = config.get("defaults.place")
-        if place_gramps_id:
-            place = self.db.get_place_from_gramps_id(place_gramps_id)
-            if place:
-                self.default_place_handle = place.handle
+        place_key = config.get("defaults.place")
+        if place_key:
+            if ":" in place_key:
+                dbid, gramps_id = place_key.split(":", maxsplit=1)
+                if dbid == self.db.get_dbid():
+                    place = self.db.get_place_from_gramps_id(gramps_id)
+                    if place:
+                        self.default_place_handle = place.handle
+
 
     def run(self):
         # type: () -> None
 
-        # Destroy the default dialog.
-        # Find the window (dialog) that contains the document so that we can destroy it.
-        # See DisplayBuf.__init__ in gramps/gui/plug/quick/_textbufdoc.py
+        # If used as a regular Quick View:
+        # - Destroy the default dialog.
+        # - Find the window (dialog) that contains the document so that we can destroy it.
+        # - See DisplayBuf.__init__ in gramps/gui/plug/quick/_textbufdoc.py
+        #
+        """
+        This needs to work both 
+            1) as a regular Quick View 
+        or 
+            2) invoked from the Quick View gramplet
+        
+        A regular Quick View creates a dialog that displays the results.
+        We cannot use that dialog here because....???
+        So that dialog is destroyed and we create a new dialog.
+        
+        The Quick View gramplet assumes that the Quick View 
+        uses the TextView that is created by the gramplet. However, we want to 
+        display arbitrary widgets and a TextView is not enough.
+        
+        The Quick View gramplet also invokes the quick view repeatedly
+        with the same TextView (stored in document.text_view). This TextView
+        is the only way to find the ScrolledView that the gramplet uses 
+        (the ScrolledView is the parent of the TextView).
+        
+        On the other hand we must remove the TextView from the ScrolledView 
+        so that we can replace it with our own widget.
+        
+        The solution I found is to replace the TextView with a new VBox that contains
+        both the original TextView and our new widget (also a VBox).
+
+        Before_
+            ScrolledView -> TextView
+
+        After:
+            ScrolledView -> VBox -> TextView
+                                    Vbox (container)
+        
+        So when this code is called the first time the TextView parent is the ScrolledView. 
+        We recognize this and create the new VBox and store the TextView in the VBox
+        and the VBox in the ScrolledView.
+
+        In subsequent calls we find that the parent of the TextView is not a ScrolledView
+        but a VBox. Then the ScrolledView is the parent of the VBox and we can use the other
+        widget in the VBox as our widget (container). Our widget must be inside the
+        ScrolledView because otherwise it wouldn't be displayed in the gramplet.
+         
+        """
+        self.document.text_view.hide() # in any case this should be hidden
+        
+        if self.is_regular_quick_view():
+            dialog = self.get_regular_quick_view_dialog()
+            dialog.close()
+            dialog.destroy()
+            self.get_options(self.obj)
+        else:
+            text_view = self.document.text_view
+            parent = text_view.get_parent()
+            if isinstance(parent, Gtk.ScrolledWindow):
+                scrolled_window = parent
+                scrolled_window.remove(text_view)
+                box = Gtk.VBox()
+                box.add(text_view)
+                scrolled_window.add(box)
+            else:
+                scrolled_window = parent.get_parent()
+                box = scrolled_window.get_child()
+                old_container = box.get_children()[1]
+                box.remove(old_container)
+            container = Gtk.VBox()
+            box.add(container)
+            box.show()
+            self.get_options(self.obj, container)
+
+    def is_regular_quick_view(self):
+        dialog = self.get_regular_quick_view_dialog()
+        return isinstance(dialog, Gtk.Dialog)
+
+    def get_regular_quick_view_dialog(self):
         text_view = self.document.text_view
         scrolled_window = text_view.get_parent()
         vbox = scrolled_window.get_parent()
+        if vbox is None: return None
         dialog = vbox.get_parent()
-        if not isinstance(dialog, Gtk.Dialog):
-            ErrorDialog(_("Error"), _("This quick view does not work in the Quick View gramplet"))
-            return
-        self.parent = dialog.get_parent()
-        dialog.close()
-        dialog.destroy()
+        return dialog
+        
 
-        self.get_options(self.obj)
-
-    def add_events(self):
+    def add_events(self, _widget=None):
         affected_handles = [handle for (handle,checkbox) in self.checks if checkbox.get_active()]
-        print("affected_handles",affected_handles)
-        self.add_events2(self.selected_obj, affected_handles, self.selected_ref.role, self.checkbox_share.get_active())
+        # print("affected_handles",affected_handles)
+        if len(affected_handles) > 0:
+            self.add_events2(self.selected_obj, affected_handles, self.selected_role, self.checkbox_share.get_active())
         
     def add_events2(self, selected_obj, affected_handles, role, share):
         # type: () -> None
         with DbTxn(_("Adding events"), self.db) as self.trans:
-            for person_handle in affected_handles:
+            self.add_object_for_person(affected_handles[0], selected_obj, role, share=share or selected_obj.new_event)
+            for person_handle in affected_handles[1:]:
                 self.add_object_for_person(person_handle, selected_obj, role, share)
-            if selected_obj.new_event and not share:
-                self.db.remove_event(selected_obj.handle, self.trans)
 
 
     def get_birth_date(self, person):
@@ -151,6 +244,7 @@ class AddEvents:
                 
                 
             self.db.add_event(event, self.trans)
+
         eref = EventRef()
         eref.ref = event.handle
         eref.role = role
@@ -158,14 +252,22 @@ class AddEvents:
         self.db.commit_person(person, self.trans)
 
 
-    def get_options(self, obj):
+    def get_options(self, obj, container=None):
         # type: (Union[Person,Family]) -> None
-        dialog = Gtk.Dialog(modal=False)
 
-        dialog.set_title(_("Add multiple events"))
-        c = dialog.get_content_area()
-        c.set_spacing(8)
-
+        """
+        This will either display a dialog (regular Quick View)
+        or add the same content to the container so it will be displayed
+        within the Quick View gramplet.
+        """        
+        if not container:
+            dialog = Gtk.Dialog(modal=False)
+    
+            dialog.set_title(_("Add multiple events"))
+            c = dialog.get_content_area()
+            c.set_spacing(8)
+        else:
+            c = container
         lbl1 = Gtk.Label()
         lbl1.set_markup("<b>" + _("Add a copy of the selected event to:") + "</b>")
         lbl1.set_halign(Gtk.Align.START)
@@ -201,14 +303,14 @@ class AddEvents:
         self.grid.rownum = 0
         grid = self.grid
 
-        c.add(btnbox)
-        c.add(lbl2)
-        c.add(self.event_frame)
-        c.add(self.role_label)
-        c.add(self.checkbox_share)
-        c.add(lbl1)
-        c.add(grid)
-        c.set_size_request(500, -1)
+        c.pack_start(btnbox, False, False, 0)
+        c.pack_start(lbl2, False, False, 0)
+        c.pack_start(self.event_frame, False, False, 0)
+        c.pack_start(self.role_label, False, False, 0)
+        c.pack_start(self.checkbox_share, False, False, 0)
+        c.pack_start(lbl1, False, False, 0)
+        c.pack_start(grid, False, False, 0)
+        c.set_size_request(300, -1)
 
         self.checks = []  # type: List[Tuple[str, Gtk.CheckButton]]
 
@@ -245,12 +347,24 @@ class AddEvents:
         self.grid.rownum += 1
         check_all.connect("clicked", self.check_all_changed)
 
-        self.ok_button = dialog.add_button(_("OK"), 1)
-        self.cancel_button = dialog.add_button(_("Cancel"), 0)
+        if not container:
+            self.ok_button = dialog.add_button(_("OK"), 1)
+            self.cancel_button = dialog.add_button(_("Cancel"), 0)
+            dialog.show_all()
+            dialog.connect("response", self.handle_response)
+        else:
+            self.ok_button = Gtk.Button(_("Add events"))
+            self.ok_button.connect("clicked", self.add_events)
+            btnbox2 = Gtk.ButtonBox()
+            btnbox2.pack_start(self.ok_button, False, False, 0)
+            c.pack_start(btnbox2, False, False, 0)
+            c.show_all()
+            #c.show_all()
         self.ok_button.set_sensitive(False)
 
-        dialog.show_all()
-        dialog.connect("response", self.handle_response)
+        if self.default_event:
+            self.default_event.new_event = False
+            self.add_event_to_dialog(self.default_role, self.default_event)
 
 
     def handle_response(self, dialog, rspcode):
@@ -260,7 +374,7 @@ class AddEvents:
         dialog.destroy()
 
 
-    def add_event_to_dialog(self, eventref, event):
+    def add_event_to_dialog(self, role, event):
         # type: (EventRef, Event) -> None
         participants = ", ".join(self.get_participants(event.handle))
         f = self.event_frame
@@ -278,16 +392,21 @@ class AddEvents:
         g.set_column_spacing(5)
         g.show_all()
 
-        self.role_label.set_text("Role: " + str(eventref.role))
-        self.selected_ref = eventref
+        self.role_label.set_text("Role: " + str(role))
+        self.selected_role = role
         self.selected_obj = event
 
         self.default_event_type = event.type.xml_str() 
         config.set("defaults.event_type", self.default_event_type)
+        dbid = self.db.get_dbid()
+        config.set("defaults.event", dbid + ":" + event.gramps_id)
+        config.set("defaults.event_role", role.xml_str())
+        
 
-        self.default_place_handle = event.place
-        place = self.db.get_place_from_handle(event.place)
-        config.set("defaults.place", place.gramps_id)
+        if event.place:
+            self.default_place_handle = event.place
+            place = self.db.get_place_from_handle(event.place)
+            config.set("defaults.place", dbid + ":" + place.gramps_id)
         
         config.save()
 
@@ -324,6 +443,7 @@ class AddEvents:
                 value = _(value)
             lbl = Gtk.Label(value)
             lbl.set_halign(Gtk.Align.START)
+            lbl.set_line_wrap(True)
             grid.attach(lbl, colnum, grid.rownum, 1, 1)
         grid.rownum += 1
 
@@ -355,6 +475,8 @@ class AddEvents:
             event.new_event = True
             if self.default_event_type:
                 event.type.set_from_xml_str(self.default_event_type)
+            if self.default_role:
+                ref.role = self.default_role
             if self.default_place_handle:
                 event.set_place_handle(self.default_place_handle)
             EditEventRef(
@@ -369,7 +491,7 @@ class AddEvents:
 
     def eventref_callback(self, eventref, event):
         # type: (EventRef, Event) -> None
-        self.add_event_to_dialog(eventref, event)
+        self.add_event_to_dialog(eventref.role, event)
 
     def check_all_changed(self, *args):
         # type: (Gtk.CheckButton) -> None
