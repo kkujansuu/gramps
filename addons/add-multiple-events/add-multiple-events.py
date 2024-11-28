@@ -19,6 +19,8 @@
 
 import html
 import traceback
+from pprint import pprint
+
 from gramps.gen.lib.eventtype import EventType
 
 try: # imports used only for type hints
@@ -42,6 +44,7 @@ from gramps.gen.lib import Family
 from gramps.gen.lib import Note
 from gramps.gen.lib import Person
 
+from gramps.gui.dialog import ErrorDialog
 from gramps.gui.dialog import OkDialog
 from gramps.gui.selectors.selectorfactory import SelectorFactory
 from gramps.gui.editors.editeventref import EditEventRef
@@ -59,7 +62,10 @@ def run(db, document, db_obj):
     # type: (DbGeneric, TextBufDoc, Union[Person,Family]) -> None
     try:
         obj = AddEvents(db, document, db_obj)
-        obj.run()
+        ok = obj.run()
+#         if not ok:
+#             ErrorDialog(_("Error"), _("This quick view does not work in the Quick View gramplet"))
+#             return
     except Exception as e:
         traceback.print_exc()
         OkDialog(_("Unexpected error"), str(e))
@@ -73,7 +79,14 @@ class AddEvents:
         self.dbstate = self.uistate.viewmanager.dbstate
         self.document = document
         self.obj = obj
-
+        
+#         o = document.text_view
+#         while o:
+#             print("---")
+#             print(o)
+#             #pprint(o.__dict__)
+#             o = o.get_parent()
+        
         config.load()
         self.default_event_type = config.get("defaults.event_type")
 
@@ -84,23 +97,145 @@ class AddEvents:
             if place:
                 self.default_place_handle = place.handle
 
+
+    
+    def xxxrun(self):
+        # type: () -> None
+
+        # If used as a regular Quick View:
+        # - Destroy the default dialog.
+        # - Find the window (dialog) that contains the document so that we can destroy it.
+        # - See DisplayBuf.__init__ in gramps/gui/plug/quick/_textbufdoc.py
+        #
+        """
+        This needs to work both 
+            1) as a regular Quick View 
+        or 
+            2) invoked from the Quick View gramplet
+        
+        A regular Quick View creates a dialog that displays the results.
+        We cannot use that dialog here because....???
+        So that dialog is destroyed and we create a new dialog.
+        
+        The Quick View gramplet assumes that the Quick View 
+        uses the TextView that is created by the gramplet. However, we want to 
+        display arbitrary widgets and a TextView is not enough.
+         
+        """
+        if self.is_regular_quick_view():
+            pass
+        text_view = self.document.text_view
+        parent = text_view.get_parent()
+        if isinstance(parent, Gtk.ScrolledWindow):
+            scrolled_window = parent
+            scrolled_window.remove(text_view)
+            box = Gtk.VBox()
+            scrolled_window.add(box)
+            box.add(text_view)
+        else:
+            scrolled_window = parent.get_parent()
+            box = scrolled_window.get_child()
+        text_view.hide()
+        vbox = scrolled_window.get_parent()
+        dialog = vbox.get_parent()
+        if isinstance(dialog, Gtk.Dialog):
+            dialog.close()
+            dialog.destroy()
+            container = None
+        else:
+            container = box
+        self.get_options(self.obj, container)
+
     def run(self):
         # type: () -> None
 
-        # Destroy the default dialog.
-        # Find the window (dialog) that contains the document so that we can destroy it.
-        # See DisplayBuf.__init__ in gramps/gui/plug/quick/_textbufdoc.py
+        # If used as a regular Quick View:
+        # - Destroy the default dialog.
+        # - Find the window (dialog) that contains the document so that we can destroy it.
+        # - See DisplayBuf.__init__ in gramps/gui/plug/quick/_textbufdoc.py
+        #
+        """
+        This needs to work both 
+            1) as a regular Quick View 
+        or 
+            2) invoked from the Quick View gramplet
+        
+        A regular Quick View creates a dialog that displays the results.
+        We cannot use that dialog here because....???
+        So that dialog is destroyed and we create a new dialog.
+        
+        The Quick View gramplet assumes that the Quick View 
+        uses the TextView that is created by the gramplet. However, we want to 
+        display arbitrary widgets and a TextView is not enough.
+        
+        The Quick View gramplet also invokes the quick view repeatedly
+        with the same TextView (stored in document.text_view). This TextView
+        is the only way to find the ScrolledView that the gramplet uses 
+        (the ScrolledView is the parent of the TextView).
+        
+        On the other hand we must remove the TextView from the ScrolledView 
+        so that we can replace it with our own widget.
+        
+        The solution I found is to replace the TextView with a new VBox that contains
+        both the original TextView and our new widget (also a VBox).
+
+        Before_
+            ScrolledView -> TextView
+
+        After:
+            ScrolledView -> VBox -> TextView
+                                    Vbox (container)
+        
+        So when this code is called the first time the TextView parent is the ScrolledView. 
+        We recognize this and create the new VBox and store the TextView in the VBox
+        and the VBox in the ScrolledView.
+
+        In subsequent calls we find that the parent of the TextView is not a ScrolledView
+        but a VBox. Then the ScrolledView is the parent of the VBox and we can use the other
+        widget in the VBox as our widget (container). Our widget must be inside the
+        ScrolledView because otherwise it wouldn't be displayed in the gramplet.
+         
+        """
+        self.document.text_view.hide() # in any case this should be hidden
+        
+        if self.is_regular_quick_view():
+            dialog = self.get_regular_quick_view_dialog()
+            dialog.close()
+            dialog.destroy()
+            self.get_options(self.obj)
+        else:
+            text_view = self.document.text_view
+            parent = text_view.get_parent()
+            if isinstance(parent, Gtk.ScrolledWindow):
+                scrolled_window = parent
+                scrolled_window.remove(text_view)
+                box = Gtk.VBox()
+                box.add(text_view)
+                scrolled_window.add(box)
+            else:
+                scrolled_window = parent.get_parent()
+                box = scrolled_window.get_child()
+                old_container = box.get_children()[1]
+                box.remove(old_container)
+            container = Gtk.VBox()
+            box.add(container)
+            box.show()
+            self.get_options(self.obj, container)
+
+    def is_regular_quick_view(self):
+        dialog = self.get_regular_quick_view_dialog()
+        return isinstance(dialog, Gtk.Dialog)
+
+    def get_regular_quick_view_dialog(self):
         text_view = self.document.text_view
         scrolled_window = text_view.get_parent()
         vbox = scrolled_window.get_parent()
+        if vbox is None: return None
         dialog = vbox.get_parent()
-        self.parent = dialog.get_parent()
-        dialog.close()
-        dialog.destroy()
+        return dialog
+        
 
-        self.get_options(self.obj)
-
-    def add_events(self):
+    def add_events(self, _widget=None):
         affected_handles = [handle for (handle,checkbox) in self.checks if checkbox.get_active()]
         print("affected_handles",affected_handles)
         self.add_events2(self.selected_obj, affected_handles, self.selected_ref.role, self.checkbox_share.get_active())
@@ -154,14 +289,22 @@ class AddEvents:
         self.db.commit_person(person, self.trans)
 
 
-    def get_options(self, obj):
+    def get_options(self, obj, container=None):
         # type: (Union[Person,Family]) -> None
-        dialog = Gtk.Dialog(modal=False)
 
-        dialog.set_title(_("Add multiple events"))
-        c = dialog.get_content_area()
-        c.set_spacing(8)
-
+        """
+        This will either display a dialog (regular Quick View)
+        or add the same content to the container so it will be displayed
+        within the Quick View gramplet.
+        """        
+        if not container:
+            dialog = Gtk.Dialog(modal=False)
+    
+            dialog.set_title(_("Add multiple events"))
+            c = dialog.get_content_area()
+            c.set_spacing(8)
+        else:
+            c = container
         lbl1 = Gtk.Label()
         lbl1.set_markup("<b>" + _("Add a copy of the selected event to:") + "</b>")
         lbl1.set_halign(Gtk.Align.START)
@@ -197,14 +340,14 @@ class AddEvents:
         self.grid.rownum = 0
         grid = self.grid
 
-        c.add(btnbox)
-        c.add(lbl2)
-        c.add(self.event_frame)
-        c.add(self.role_label)
-        c.add(self.checkbox_share)
-        c.add(lbl1)
-        c.add(grid)
-        c.set_size_request(500, -1)
+        c.pack_start(btnbox, False, False, 0)
+        c.pack_start(lbl2, False, False, 0)
+        c.pack_start(self.event_frame, False, False, 0)
+        c.pack_start(self.role_label, False, False, 0)
+        c.pack_start(self.checkbox_share, False, False, 0)
+        c.pack_start(lbl1, False, False, 0)
+        c.pack_start(grid, False, False, 0)
+        c.set_size_request(300, -1)
 
         self.checks = []  # type: List[Tuple[str, Gtk.CheckButton]]
 
@@ -241,13 +384,20 @@ class AddEvents:
         self.grid.rownum += 1
         check_all.connect("clicked", self.check_all_changed)
 
-        self.ok_button = dialog.add_button(_("OK"), 1)
-        self.cancel_button = dialog.add_button(_("Cancel"), 0)
+        if not container:
+            self.ok_button = dialog.add_button(_("OK"), 1)
+            self.cancel_button = dialog.add_button(_("Cancel"), 0)
+            dialog.show_all()
+            dialog.connect("response", self.handle_response)
+        else:
+            self.ok_button = Gtk.Button(_("Add events"))
+            self.ok_button.connect("clicked", self.add_events)
+            btnbox2 = Gtk.ButtonBox()
+            btnbox2.pack_start(self.ok_button, False, False, 0)
+            c.pack_start(btnbox2, False, False, 0)
+            c.show_all()
+            #c.show_all()
         self.ok_button.set_sensitive(False)
-
-        dialog.show_all()
-        dialog.connect("response", self.handle_response)
-
 
     def handle_response(self, dialog, rspcode):
         # type: (Gtk.Dialog, int) -> None
