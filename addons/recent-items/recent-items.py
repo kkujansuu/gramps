@@ -79,6 +79,7 @@ except ValueError:
     _trans = glocale.translation
 _ = _trans.gettext
 
+dbpath = config.get("database.path")
 
 name = "recent-items.json"
 dirname = os.path.split(__file__)[0]
@@ -136,10 +137,16 @@ def update_recent_items(self, dbid, obj):
             olddata.insert(0, value)
             olddata = olddata[0:MAXITEMS]
             recent_data[dbid][ns1] = olddata
+    remove_deleted_databases(recent_data)
     with open(fname, "w") as f:
         print(json.dumps(recent_data, indent=4), file=f)
 
-
+def remove_deleted_databases(recent_data):
+    dbids = set(os.listdir(dbpath))
+    for dbid in list(recent_data):
+        if dbid not in dbids:
+            del recent_data[dbid]
+            
 def get_recent_data():
     try:
         recent_data = json.loads(open(fname).read())
