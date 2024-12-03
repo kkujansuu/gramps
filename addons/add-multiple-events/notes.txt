@@ -1,0 +1,123 @@
+
+    def dump(self, c, indent=0):
+        print(indent, " "*indent, c.is_visible(), c)
+        if hasattr(c, "get_children"):
+            for child in c.get_children():
+                self.dump(child, indent+1)
+
+
+
+Quick View
+
+    dialog
+        vbox
+            scrolled_window
+                document.text_view
+        
+        
+Quick View gramplet in Sidebar/Bottombar
+    GrampletBar
+        gui: ScrolledWindow/TabGramplet
+            gui.textview = document.text_view: TextView
+
+Quick View gramplet in Dashboard
+    frame
+        box
+            ScrolledWindow (GridGramplet.scrolledwindow)
+                gui.textview = document.text_view: TextView
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        # Return False if this is invoked from the Quick View gramplet
+        text_view = self.document.text_view
+        scrolled_window = text_view.get_parent()
+        if scrolled_window:
+            vbox = scrolled_window.get_parent()
+    #         if vbox is None:
+    #             return False
+            dialog = vbox.get_parent()
+    #        if not isinstance(dialog, Gtk.Dialog):
+    #            return False
+            if isinstance(dialog, Gtk.Dialog):
+                self.parent = dialog.get_parent()
+                dialog.close()
+                dialog.destroy()
+            else:
+                scrolled_window.remove(text_view)
+                
+-----------------
+quick view
+
+<Gtk.TextView object at 0x7fd8095aa440 (GtkTextView at 0x27f8aa0)>
+---
+<Gtk.ScrolledWindow object at 0x7fd8095cdd40 (GtkScrolledWindow at 0x4443270)>
+---
+<Gtk.Box object at 0x7fd809574dc0 (GtkBox at 0x44513f0)>
+---
+<Gtk.Dialog object at 0x7fd809657480 (GtkDialog at 0x3afe310)>
+
+
+
+----------------
+tabgramplet
+
+---
+<Gtk.TextView object at 0x7fd80ae2b040 (GtkTextView at 0x3dbd760)>
+---
+<grampletbar.TabGramplet object at 0x7fd80bea78c0 (gramps+gui+widgets+grampletbar+TabGramplet at 0x3dcfed0)>
+---
+<grampletbar.GrampletBar object at 0x7fd812d59880 (gramps+gui+widgets+grampletbar+GrampletBar at 0x25e42f0)>
+---
+<Gtk.Paned object at 0x7fd80ad8f480 (GtkPaned at 0x3d9b990)>
+---
+<Gtk.Notebook object at 0x7fd80be91fc0 (GtkNotebook at 0x25e4750)>
+---
+<Gtk.Paned object at 0x7fd80bf7fb00 (GtkPaned at 0x25e1580)>
+---
+<Gtk.Box object at 0x7fd8095744c0 (GtkBox at 0x372b190)>
+---
+<Gtk.ApplicationWindow object at 0x7fd80be8e640 (GtkApplicationWindow at 0x27a45a0)>
+
+-----------------
+gridgramplet
+
+<Gtk.TextView object at 0x7fd8095e2f40 (GtkTextView at 0x3dbdf70)>
+---
+<Gtk.ScrolledWindow object at 0x7fd8095e23c0 (GtkScrolledWindow at 0x4442f30)>
+---
+<Gtk.Box object at 0x7fd809619f00 (GtkBox at 0x4e1b6f0)>
+---
+<Gtk.Frame object at 0x7fd809619480 (GtkFrame at 0x465d8a0)>
+---
+<Gtk.Box object at 0x7fd8095e2400 (GtkBox at 0x4e1d1a0)>
+---
+<Gtk.Box object at 0x7fd80957c5c0 (GtkBox at 0x4e1b430)>
+---
+<Gtk.Box object at 0x7fd80957c140 (GtkBox at 0x4e1b2d0)>
+---
+<Gtk.EventBox object at 0x7fd80957c8c0 (GtkEventBox at 0x4bd2cb0)>
+---
+<Gtk.Viewport object at 0x7fd809619480 (GtkViewport at 0x461c9f0)>
+---
+<grampletpane.GrampletPane object at 0x7fd80957cf40 (gramps+gui+widgets+grampletpane+GrampletPane at 0x44428b0)>
+---
+<Gtk.Notebook object at 0x7fd80be91fc0 (GtkNotebook at 0x25e4750)>
+---
+<Gtk.Paned object at 0x7fd80bf7fb00 (GtkPaned at 0x25e1580)>
+---
+<Gtk.Box object at 0x7fd809619480 (GtkBox at 0x372b190)>
+---
+<Gtk.ApplicationWindow object at 0x7fd80be8e640 (GtkApplicationWindow at 0x27a45a0)
+
+-------------------                

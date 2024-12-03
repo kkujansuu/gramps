@@ -10,13 +10,6 @@ These are experimental in nature and some of them are intended for developers, n
 
 ***
 
-### FilterParams 
-
-An enhanced filter editor
-
-https://github.com/kkujansuu/gramps/tree/master/addons/FilterParams
-
-***
 	
 ### Add Multiple Events
 
@@ -35,6 +28,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/DoYouKnowYourFamily
 
 ***
 
+### FilterParams 
+
+An enhanced filter editor
+
+https://github.com/kkujansuu/gramps/tree/master/addons/FilterParams
+
+***
+
 ### Fulltext search
 
 Fast search across all object types
@@ -48,6 +49,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/Fulltext
 Modifies the display name of individuals to include alternate surnames
 	
 https://github.com/kkujansuu/gramps/tree/master/addons/nameformat
+
+***
+
+### Notes2 Gramplet
+
+Slightly modified version of the regular Notes gramplet.
+	
+https://github.com/kkujansuu/gramps/tree/master/addons/Notes2Gramplet
 
 ***
 
