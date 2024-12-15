@@ -65,6 +65,7 @@ from gramps.gui.editors import EditPlaceRef
 from gramps.gui.selectors.selectplace import SelectPlace
 from gramps.gui.selectors.baseselector import BaseSelector
 from gramps.gui.widgets import SimpleButton
+from gramps.gui.widgets import PersistentTreeView
 
 # ------------------------------------------------------------------------
 #
@@ -201,11 +202,15 @@ def new_init(self, dbstate, *args, **kwargs):
     numcolumns = maxindex + 1
     args = [str] * (numcolumns + 1)  # one for the handle
     model = Gtk.ListStore(*args)
-    tree = Gtk.TreeView()
+    
+    config_name = self.get_config_name() + "-recent-items"
+    tree = PersistentTreeView(self.uistate, config_name)
+
     tree.set_model(model)
-    tree.set_headers_visible(False)
+    # tree.set_headers_visible(False)
 
     BaseSelector.add_columns(self, tree)
+    tree.restore_column_size()
     filterobj = self.filter[1]
 
     namespace = get_namespace(self)

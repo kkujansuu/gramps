@@ -30,7 +30,7 @@ register(
     id="recent-items",
     name=_("Recent items"),
     description=_("Add recent items to selectors"),
-    version="0.9.0",
+    version="0.9.2",
     gramps_target_version=major_version,
     status=STABLE,
     fname="recent-items.py",
