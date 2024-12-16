@@ -264,16 +264,13 @@ def new_init(self, dbstate, *args, **kwargs):
     lbl = Gtk.Label(msg)
     lbl.set_use_markup(True)
     lbl.set_halign(Gtk.Align.START)
-    but = Gtk.Button("New")
-    but.connect("clicked", lambda _widget: new_item(self, dbstate))
 
-#     but = SimpleButton('list-add',  lambda _widget: new_item(self, dbstate))
-#     but.set_relief(Gtk.ReliefStyle.NORMAL)
-
-    header.pack_start(lbl, False, True, 0)
-#    header.pack_start(but, False, True, 5)
+    header.add(lbl)
+    sw = Gtk.ScrolledWindow()
+    sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+    sw.add(tree)
     recent_box.add(header)
-    recent_box.add(tree)
+    recent_box.add(sw)
     recent_box.show_all()
 
     # activate a row on the recent items list but do not select it yet
@@ -290,15 +287,6 @@ def new_init(self, dbstate, *args, **kwargs):
     )
 
 
-def new_item(self, dbstate):
-    print("new")
-    p = Person()
-#     class DbState: pass
-#     dbstate = DbState()
-#     dbstate.db = self.db 
-    track = []
-    EditPerson(dbstate, self.uistate, track, p, callback=callback)
-    
 def callback(obj):
     print("new obj",obj)
     
