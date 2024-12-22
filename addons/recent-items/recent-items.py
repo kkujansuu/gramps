@@ -202,16 +202,25 @@ def new_init(self, dbstate, *args, **kwargs):
     numcolumns = maxindex + 1
     args = [str] * (numcolumns + 1)  # one for the handle
     model = Gtk.ListStore(*args)
-    
-    config_name = self.get_config_name() + "-recent-items"
-    tree = PersistentTreeView(self.uistate, config_name)
-
+    tree = PersistentTreeView(config_name=self.__class__.__name__.lower())
     tree.set_model(model)
-    # tree.set_headers_visible(False)
+    tree.set_headers_visible(False)
 
     BaseSelector.add_columns(self, tree)
     tree.restore_column_size()
     filterobj = self.filter[1]
+
+    def resizes(child):
+        if isinstance(child, Gtk.ScrolledWindow):
+            oldtree = child.get_child()
+            for col in oldtree.get_columns():
+                col.connect("notify::width", change_column_size, oldtree, tree)
+
+    def change_column_size(col, width, oldtree, tree):
+        oldtree.save_column_info()
+        tree.restore_column_size()
+
+    vbox.forall(resizes)
 
     namespace = get_namespace(self)
     if namespace == "Person":
@@ -267,7 +276,8 @@ def new_init(self, dbstate, *args, **kwargs):
 
     header.add(lbl)
     sw = Gtk.ScrolledWindow()
-    sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+    sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+    sw.set_max_content_width(3)
     sw.add(tree)
     recent_box.add(header)
     recent_box.add(sw)
