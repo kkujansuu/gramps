@@ -86,7 +86,7 @@ name = "recent-items.json"
 dirname = os.path.split(__file__)[0]
 fname = os.path.join(dirname, name)
 
-MAXITEMS = 6
+MAXITEMS = 10
 
 
 def load_on_reg(dbstate, uistate, plugin):
@@ -279,6 +279,8 @@ def new_init(self, dbstate, *args, **kwargs):
     sw = Gtk.ScrolledWindow()
     sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     sw.set_max_content_width(3)
+    sw.set_min_content_height(100)
+
     vbox = Gtk.VBox()
     vbox.pack_start(tree, False, False, padding=15)
     sw.add(vbox)
