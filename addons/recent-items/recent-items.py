@@ -275,13 +275,16 @@ def new_init(self, dbstate, *args, **kwargs):
     lbl.set_halign(Gtk.Align.START)
 
     header.add(lbl)
+
     sw = Gtk.ScrolledWindow()
     sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     sw.set_max_content_width(3)
-    sw.add(tree)
+    vbox = Gtk.VBox()
+    vbox.pack_start(tree, False, False, padding=15)
+    sw.add(vbox)
     recent_box.add(header)
     recent_box.add(sw)
-    recent_box.show_all()
+    recent_box.show_all()    
 
     # activate a row on the recent items list but do not select it yet
     tree.set_activate_on_single_click(True)
