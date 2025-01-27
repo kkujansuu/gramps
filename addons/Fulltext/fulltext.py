@@ -250,6 +250,8 @@ class Tool(tool.Tool):
     def delete_index(self):
         if os.path.exists(self.indexdir):
             shutil.rmtree(self.indexdir)
+        if os.path.exists(self.wordfile):
+            os.remove(self.wordfile)
         self.box1.show_all()
         self.box2.hide()
         fulltext_loader.disable_trace(self.db)
