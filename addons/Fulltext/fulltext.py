@@ -297,8 +297,6 @@ class Tool(tool.Tool):
                     print(w, file=f)
         
         self.set_entry_completion()
-        for w in words:
-            self.completion_list.append([w])
                     
         progress.close()
         t2 = time.time()
