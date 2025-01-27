@@ -196,7 +196,7 @@ class Tool(tool.Tool):
         self.query_field.set_completion(entry_completion)
 
         try:
-            words = open(self.wordfile).readlines()
+            words = open(self.wordfile, encoding='utf-8').readlines()
         except:
             words = []
         
@@ -290,7 +290,7 @@ class Tool(tool.Tool):
                     n += 1
 
             progress.set_pass("Closing", 1)
-            with open(self.wordfile, "wt") as f:
+            with open(self.wordfile, "wt", encoding='utf-8') as f:
                 for w in sorted(words):
                     print(w, file=f)
         
