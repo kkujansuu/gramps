@@ -241,6 +241,7 @@ class Tool(tool.Tool, ManagedWindow):
         self.combo_filters = glade.get_child_object("combo_filters")
         self.add_button = glade.get_child_object("add_button")
         self.edit_button = glade.get_child_object("edit_button")
+        self.clone_button = glade.get_child_object("clone_button")
         self.delete_button = glade.get_child_object("delete_button")
 
         self.execute_button = glade.get_child_object("execute_button")
@@ -266,6 +267,7 @@ class Tool(tool.Tool, ManagedWindow):
 
             self.add_button.connect("clicked", self.add_new_filter)
             self.edit_button.connect("clicked", self.edit_filter)
+            self.clone_button.connect("clicked", self.clone_filter)
             self.delete_button.connect("clicked", self.delete_filter)
 
             self.execute_button.connect("clicked", self.execute_clicked)
@@ -419,6 +421,7 @@ class Tool(tool.Tool, ManagedWindow):
 
     def clone_filter(self, obj): # not used
         # type: (str) -> None
+        print("clone_filter")
         if not self.current_category:
             return 
         if not self.current_filtername:
