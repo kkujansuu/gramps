@@ -67,7 +67,6 @@ def merge(dbstate, uistate, selection):
     
 def load_on_reg(dbstate, uistate, plugin):
     # patch some classes
-    traceback.print_stack()
     def new_post_init(self, cls):
         cls.orig_post_init(self)
         hbox = self.child_list.add_btn.get_parent()
