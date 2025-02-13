@@ -441,8 +441,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         if self.dbstate.db.has_citation_handle(handle):
             citation_handle = handle
             citation = self.dbstate.db.get_citation_from_handle(citation_handle)
-        if rowtype == DdTargets.EVENT.drag_type: 
-            print("GOT event")
         if not rowtype in (
             DdTargets.CITATION_LINK.drag_type,
             DdTargets.EVENT.drag_type,

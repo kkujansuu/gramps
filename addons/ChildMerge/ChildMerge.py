@@ -80,11 +80,9 @@ class Children(Gramplet):
 
     def merge_clicked(self, _widget):
         model, treepaths = self.treeview.get_selection().get_selected_rows()
-        print(model)
         handles = []
         for treepath in treepaths:
             row = list(model[treepath])
-            print(row)
             handles.append(row[0])
         if len(handles) != 2:
             ErrorDialog(_("Error"), _("Merge exactly two persons"))

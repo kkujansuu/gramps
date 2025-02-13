@@ -67,11 +67,7 @@ def merge(dbstate, uistate, selection):
     
 def load_on_reg(dbstate, uistate, plugin):
     # patch some classes
-    print("Embedded childmerge load on reg")
     traceback.print_stack()
-    print(uistate.viewmanager)
-    print(uistate.viewmanager.uimanager)
-    print(uistate.viewmanager.uimanager.et_xml)
     def new_post_init(self, cls):
         cls.orig_post_init(self)
         hbox = self.child_list.add_btn.get_parent()
