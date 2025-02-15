@@ -20,6 +20,7 @@
 
 import os
 import pickle
+import shutil
 import sys
 import traceback
 
@@ -30,6 +31,7 @@ from gramps.gen.lib import Note
 from gramps.gen.lib import Person
 from gramps.gen.lib import Event
 
+from gramps.gui.dbman import DbManager
 from gramps.gui.editors import EditCitation
 from gramps.gui.editors import EditEvent
 from gramps.gui.editors import EditFamily
@@ -45,7 +47,6 @@ dbpath = config.get("database.path")
 import fulltext_objects
 
 def load_on_reg(dbstate, uistate, plugin):
-    #print("loading whoosh")
     if "fulltext_marker" in sys.modules: # to avoid doing the dbstate.connect below multiple times if plugins are reloaded
         #print("already loaded")
         return
@@ -55,7 +56,17 @@ def load_on_reg(dbstate, uistate, plugin):
     import whoosh
 
     dbstate.connect("database-changed", db_changed)
-    # print("whoosh loaded")
+
+    if not hasattr(DbManager, "orig_really_delete_db"):
+        DbManager.orig_really_delete_db = DbManager._DbManager__really_delete_db
+    DbManager._DbManager__really_delete_db = really_delete_db
+
+def really_delete_db(self):
+    directory = self.data_to_delete[1]
+    indexdir = os.path.join(directory, "indexdir")
+    if os.path.exists(indexdir):
+        shutil.rmtree(indexdir)
+    DbManager.orig_really_delete_db(self)
 
 
 def db_changed(db):
