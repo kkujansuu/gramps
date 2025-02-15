@@ -355,7 +355,7 @@ class Tool(tool.Tool):
                 handle = res["handle"]
                 proxy = fulltext_objects.getproxy(objtype)
                 proxy.from_handle(self.db, handle)
-                text = proxy.content(self.db)
+                text = proxy.content_for_display(self.db)
                 hltext = res.highlights("content", text=text)
                 hltext2 = hltext.replace(ColorFormatter.PREFIX1, "").replace(ColorFormatter.SUFFIX1, "")
                 if not text.startswith(hltext2): hltext = "..." + hltext

@@ -64,6 +64,9 @@ class ProxyBase:
         data = pickle.loads(pickled)
         self.obj.unserialize(data)
 
+    def content_for_display(self, db):
+        return self.content(db)
+
 
 class NoteProxy(ProxyBase):
     def __init__(self):
@@ -142,7 +145,9 @@ class PlaceProxy(ProxyBase):
         return db.get_number_of_places()
 
     def content(self, db):
-        # return self.obj.get_name().get_value()
+        return self.obj.get_name().get_value()
+
+    def content_for_display(self, db):
         names = [place_displayer.display(db, self.obj)] 
         for pn in self.obj.get_alternative_names():
             names.append(pn.get_value())
