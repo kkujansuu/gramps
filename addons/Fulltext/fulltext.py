@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2024      KKu
+# Copyright (C) 2024-2025      Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -94,7 +94,9 @@ class Tool(tool.Tool):
         self.dbstate = dbstate
         self.db = dbstate.db
         tool.Tool.__init__(self, dbstate, options_class, name)
-        self.run()
+        self.engine = SearchEngine(dbstate)
+        if user.uistate:
+            self.run()
 
 
     def run(self):
@@ -119,11 +121,11 @@ class Tool(tool.Tool):
 
         self.query_field.connect("key-press-event", self.keypress)
         self.search_button.connect("clicked", self.dosearch)
-        self.create_index_button.connect("clicked", self.build_index1)
+        self.create_index_button.connect("clicked", self.build_index2)
         self.listview.connect("button-press-event", self.button_press)
 
         self.delete_index_button.connect("clicked", self.do_delete_index)
-        self.build_index_button.connect("clicked", self.build_index)
+        self.build_index_button.connect("clicked", self.build_index1)
         self.close_button.connect("clicked", lambda *args: self.glade.toplevel.destroy())
 
         self.dbstate.connect("database-changed", self.db_changed)
@@ -146,26 +148,9 @@ class Tool(tool.Tool):
         lastquery = fulltext_config.get("defaults.querytext")
         self.query_field.set_text(lastquery)
             
-        dbpath = gconfig.get("database.path")
-        dbid = self.db.get_dbid()
-        if not dbid:
-            ErrorDialog("Error", "Database is not open")
-            return
-
-        self.indexdir = os.path.join(dbpath, dbid, "indexdir")
-        self.wordfile = self.indexdir + ".words"
-
-        analyzer = RegexTokenizer(r"\w+|@|\$|£|€|#|=|\[|\]") | LowercaseFilter()
-        self.schema = Schema(
-            objtype=TEXT(stored=True),
-            title=TEXT(stored=True),
-            handle=ID(stored=True, unique=True),
-            content=TEXT(analyzer=analyzer),
-        )
-        self.create_parser()
 
         self.msg.set_text("")
-        if os.path.exists(self.indexdir):
+        if os.path.exists(self.engine.indexdir):
             self.box1.hide()
             self.box2.show_all()
             self.query_field.set_sensitive(True)
@@ -196,7 +181,7 @@ class Tool(tool.Tool):
         self.query_field.set_completion(entry_completion)
 
         try:
-            words = open(self.wordfile, encoding='utf-8').readlines()
+            words = open(self.engine.wordfile, encoding='utf-8').readlines()
         except:
             words = []
         
@@ -204,8 +189,6 @@ class Tool(tool.Tool):
         for text in words:
             self.completion_list.append([text.strip()])
                     
-            
-    
     def db_changed(self, db):
         self.glade.toplevel.destroy()
 
@@ -236,78 +219,32 @@ class Tool(tool.Tool):
             traceback.print_exc()
         return False
 
-    def create_parser(self):
-        self.parser = QueryParser("content", self.schema)
-        self.parser.add_plugin(whoosh.qparser.FuzzyTermPlugin())
-        self.parser.add_plugin(whoosh.qparser.PlusMinusPlugin())
 
     def do_delete_index(self, _widget):
         self.msg.set_text("")
         self.msg2.set_text("")
-        QuestionDialog("Confirm delete","", "Delete index",  self.delete_index)
+        QuestionDialog("Confirm delete","", "Delete index",  self.delete_index1)
         #self.delete_index()
 
-    def delete_index(self):
-        if os.path.exists(self.indexdir):
-            shutil.rmtree(self.indexdir)
-        if os.path.exists(self.wordfile):
-            os.remove(self.wordfile)
+    def delete_index1(self):
+        self.engine.delete_index()
         self.box1.show_all()
         self.box2.hide()
         fulltext_loader.disable_trace(self.db)
 
-    def build_index(self, _widget):
-        QuestionDialog("Confirm rebuild","", "Build",  self.build_index1)
+    def build_index1(self, _widget):
+        QuestionDialog("Confirm rebuild","", "Build",  self.build_index2)
 
-    def build_index1(self, _widget=None):
-        t1 = time.time()
-        self.delete_index()
-        os.makedirs(self.indexdir)
-        ix = create_in(self.indexdir, self.schema)
-
+    def build_index2(self, _widget=None):
         progress = ProgressMeter('Building index', 'Building', can_cancel=True)
-        
-        canceled = False
-        n = 0
-        words = set()
-        with ix.writer() as writer:
-            for objtype in sorted(fulltext_objects.OBJTYPES):
-                if canceled: break
-                proxy = fulltext_objects.getproxy(objtype)
-                progress.set_pass("Indexing: " + objtype, proxy.countfunc(self.db))
-                
-                for obj in proxy.iterfunc(self.db):
-                    if progress.step():
-                        canceled = True
-                        break
-                    proxy.obj = obj
-                    content=proxy.content(self.db)
-                    writer.add_document(
-                        objtype=objtype,
-                        title=proxy.gramps_id,
-                        handle=proxy.handle,
-                        content=content,
-                    )
-                    words.update(re.split(r"\W+", content))
-                    n += 1
-
-            progress.set_pass("Closing", 1)
-            with open(self.wordfile, "wt", encoding='utf-8') as f:
-                for w in sorted(words):
-                    print(w, file=f)
-        
-        self.set_entry_completion()
-                    
+        n, elapsed = self.engine.build_index(progress=progress)
         progress.close()
-        t2 = time.time()
-        msg = "Indexed {} objects in {} seconds".format(n, int(t2 - t1))
+        msg = "Indexed {} objects in {:.2f} seconds".format(n, elapsed)
+        self.set_entry_completion()
         self.msg.set_text(msg)
         self.msg2.set_text("")
         self.box1.hide()
         self.box2.show()
-
-        fulltext_loader.enable_trace(self.db)
-
 
     def dosearch(self, _widget):
         query_text = self.query_field.get_text().strip()
@@ -323,18 +260,103 @@ class Tool(tool.Tool):
                 s = " (" + " OR ".join(types) + ")"
             else:
                 s = ""
-            self.search(query_text + s)
+            self.msg.set_text("")
+            self.msg2.set_text("")
+            rows, elapsed = self.engine.search(query_text + s, limit=int(self.limit.get_text()))
+            self.listmodel.clear()
+            for row in rows:
+                self.listmodel.append(row)
+            self.msg2.set_text("Results: {} (time {:.2f} s)".format(len(rows), elapsed))
 
-    def search(self, query_text):
+class SearchEngine:
+    def __init__(self, dbstate):
+        self.dbstate = dbstate
+        self.db = dbstate.db
+        self.init_fulltext()
+        
+    def init_fulltext(self):
+        dbpath = gconfig.get("database.path")
+        dbid = self.db.get_dbid()
+        if not dbid:
+            ErrorDialog("Error", "Database is not open")
+            return
+
+        self.indexdir = os.path.join(dbpath, dbid, "indexdir")
+        self.wordfile = self.indexdir + ".words"
+
+        analyzer = RegexTokenizer(r"\w+|@|\$|£|€|#|=|\[|\]") | LowercaseFilter()
+        self.schema = Schema(
+            objtype=TEXT(stored=True),
+            title=TEXT(stored=True),
+            handle=ID(stored=True, unique=True),
+            content=TEXT(analyzer=analyzer),
+        )
+        self.create_parser()
+
+    def create_parser(self):
+        self.parser = QueryParser("content", self.schema)
+        self.parser.add_plugin(whoosh.qparser.FuzzyTermPlugin())
+        self.parser.add_plugin(whoosh.qparser.PlusMinusPlugin())
+
+    def delete_index(self):
+        if os.path.exists(self.indexdir):
+            shutil.rmtree(self.indexdir)
+        if os.path.exists(self.wordfile):
+            os.remove(self.wordfile)
+        fulltext_loader.disable_trace(self.db)
+
+    def build_index(self, _widget=None, progress=None):
         t1 = time.time()
-        self.msg.set_text("")
-        self.msg2.set_text("")
+        self.delete_index()
+        os.makedirs(self.indexdir)
+        ix = create_in(self.indexdir, self.schema)
+
+        canceled = False
+        n = 0
+        words = set()
+        with ix.writer() as writer:
+            for objtype in sorted(fulltext_objects.OBJTYPES):
+                print("-", objtype)
+                if canceled: break
+                proxy = fulltext_objects.getproxy(objtype)
+                if progress:
+                    progress.set_pass("Indexing: " + objtype, proxy.countfunc(self.db))
+                print(proxy)
+                print( proxy.iterfunc)
+                print( proxy.iterfunc(self.db))
+                for obj in proxy.iterfunc(self.db):
+                    if progress and progress.step():
+                        canceled = True
+                        break
+                    proxy.obj = obj
+                    content=proxy.content(self.db)
+                    if objtype== "personattr" and content:
+                        print(">", content)
+                    writer.add_document(
+                        objtype=objtype,
+                        title=proxy.gramps_id,
+                        handle=proxy.handle,
+                        content=content,
+                    )
+                    words.update(re.split(r"\W+", content))
+                    n += 1
+
+            with open(self.wordfile, "wt", encoding='utf-8') as f:
+                for w in sorted(words):
+                    print(w, file=f)
+        
+        fulltext_loader.enable_trace(self.db)
+        t2 = time.time()
+        return n, t2-t1
+
+    def search(self, query_text, limit):
+        t1 = time.time()
         ix = open_dir(self.indexdir)
 
         query = self.parser.parse(query_text)
 
         with ix.searcher() as searcher:
-            results = searcher.search(query, limit=int(self.limit.get_text()))
+            results = searcher.search(query, limit=limit)
             results.formatter = whoosh.highlight.UppercaseFormatter()
 
             # Increase character limit
@@ -348,8 +370,8 @@ class Tool(tool.Tool):
             
             results.formatter = ColorFormatter()
             
-            self.listmodel.clear()
             n = 0
+            rows = []
             for res in results:
                 objtype = res["objtype"]
                 handle = res["handle"]
@@ -364,10 +386,10 @@ class Tool(tool.Tool):
                 hltext = (hltext.replace(ColorFormatter.PREFIX1, ColorFormatter.PREFIX2)
                           .replace(ColorFormatter.SUFFIX1, ColorFormatter.SUFFIX2)) 
 
-                self.listmodel.append([proxy.gramps_id, objtype, hltext, handle])
+                rows.append([proxy.gramps_id, objtype, hltext, handle])
                 n += 1
             t2 = time.time()
-            self.msg2.set_text("Results: {} (time {:.2f} s)".format(n, t2-t1))
+            return rows, t2-t1
 
 
 # ------------------------------------------------------------------------
@@ -379,4 +401,3 @@ class Options(tool.ToolOptions):
     pass
     
     
-
