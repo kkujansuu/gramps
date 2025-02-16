@@ -327,7 +327,7 @@ class SearchEngine:
                         canceled = True
                         break
                     proxy.obj = obj
-                    for seq, (contenttype, content) in enumerate(proxy.content(self.db)):
+                    for seq, (contenttype, content) in enumerate(proxy.content()):
                         writer.add_document(
                             objtype=objtype,
                             title=proxy.gramps_id,

@@ -65,7 +65,7 @@ class ProxyBase:
         self.obj.unserialize(data)
 
     def content_for_display(self, db, contenttype, seq):
-        (ctype, content) = list(self.content(db))[seq]
+        (ctype, content) = list(self.content())[seq]
         return content
 
     def process_attributes(self):
@@ -92,7 +92,7 @@ class NoteProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_notes()
 
-    def content(self, db):
+    def content(self):
         yield ("text", str(self.obj.text).replace("\n", " "))
 
     def from_handle(self, db, handle):
@@ -113,7 +113,7 @@ class PersonProxy(ProxyBase ):
     def countfunc(self, db):
         return db.get_number_of_people()
 
-    def content(self, db):
+    def content(self):
         for name in [self.obj.primary_name] + self.obj.alternate_names:
             yield ("name", name.get_regular_name())
 
@@ -138,7 +138,7 @@ class EventProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_events()
 
-    def content(self, db):
+    def content(self):
         yield ("description", self.obj.description)
         yield from self.process_attributes()
 
@@ -160,7 +160,7 @@ class PlaceProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_places()
 
-    def content(self, db):
+    def content(self):
         yield ("name", self.obj.get_name().get_value())
         yield from self.process_urls()         
 
@@ -189,7 +189,7 @@ class CitationProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_citations()
 
-    def content(self, db):
+    def content(self):
         yield ("page", self.obj.get_page())
 
     def from_handle(self, db, handle):
@@ -210,7 +210,7 @@ class SourceProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_sources()
 
-    def content(self, db):
+    def content(self):
         yield ("title", self.obj.get_title())
 
     def from_handle(self, db, handle):
@@ -230,7 +230,7 @@ class RepositoryProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_repositories()
 
-    def content(self, db):
+    def content(self):
         yield ("name", self.obj.get_name())
         yield from self.process_urls()         
 
@@ -252,7 +252,7 @@ class MediaProxy(ProxyBase):
     def countfunc(self, db):
         return db.get_number_of_media()
 
-    def content(self, db):
+    def content(self):
         yield ("description", self.obj.get_description())
         yield from self.process_attributes()
 

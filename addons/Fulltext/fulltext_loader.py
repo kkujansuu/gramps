@@ -103,7 +103,7 @@ def callback(db, sqlstring):
         ix = get_ix(db)
         if ix is None: return
         with ix.writer() as writer:
-            for seq, (contenttype, content) in enumerate(proxy.content(db)):
+            for seq, (contenttype, content) in enumerate(proxy.content()):
                 writer.add_document(
                     objtype=objtype,
                     title=proxy.gramps_id,
@@ -139,7 +139,7 @@ def callback(db, sqlstring):
         if ix is None: return
         with ix.writer() as writer:
             writer.delete_by_term('handle', proxy.handle)
-            for seq, (contenttype, content) in enumerate(proxy.content(db)):
+            for seq, (contenttype, content) in enumerate(proxy.content()):
                 writer.add_document(
                     objtype=objtype,
                     title=proxy.gramps_id,
