@@ -1,6 +1,6 @@
 # Full text search
-v0.9.0<br>
-14 Jul 2024<br>
+v0.9.2<br>
+14 Feb 2025<br>
 Author: kari.kujansuu@gmail.com<br>
 
 ## Introduction
@@ -81,5 +81,8 @@ The list can be sorted by clicking the headers. Double clicking a row opens the 
 ## Notes
 
 Importing a large number of objects might be slow if the search index is being used. Then every object has to added to the search index. It might be faster to first delete the search index, do the import and then recreate the index.
+
+This addon does not support Gramps 6.x yet.
+
 
 
