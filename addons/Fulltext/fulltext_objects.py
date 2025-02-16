@@ -162,6 +162,8 @@ class PlaceProxy(ProxyBase):
 
     def content(self):
         yield ("name", self.obj.get_name().get_value())
+        for pn in self.obj.get_alternative_names():
+            yield ("altname", pn.get_value())
         yield from self.process_urls()         
 
     def content_for_display(self, db, contenttype, seq):
