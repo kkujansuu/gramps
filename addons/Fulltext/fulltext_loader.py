@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2024      KKu
+# Copyright (C) 2024-2025      Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -103,12 +103,15 @@ def callback(db, sqlstring):
         ix = get_ix(db)
         if ix is None: return
         with ix.writer() as writer:
-            writer.add_document(
-                objtype=objtype,
-                title=proxy.gramps_id,
-                handle=proxy.handle,
-                content=proxy.content(db),
-            )
+            for seq, (contenttype, content) in enumerate(proxy.content(db)):
+                writer.add_document(
+                    objtype=objtype,
+                    title=proxy.gramps_id,
+                    handle=proxy.handle,
+                    seq=seq,
+                    contenttype=contenttype,
+                    content=content,
+                )
 
     if sqlstring.startswith("DELETE FROM "):
         # DELETE FROM note WHERE handle = 'fa58e755a2176eb0842bba649f3'
@@ -135,12 +138,16 @@ def callback(db, sqlstring):
         ix = get_ix(db)
         if ix is None: return
         with ix.writer() as writer:
-            writer.update_document(
-                objtype=objtype,
-                title=proxy.gramps_id,
-                handle=proxy.handle,
-                content=proxy.content(db),
-            )
+            writer.delete_by_term('handle', proxy.handle)
+            for seq, (contenttype, content) in enumerate(proxy.content(db)):
+                writer.add_document(
+                    objtype=objtype,
+                    title=proxy.gramps_id,
+                    handle=proxy.handle,
+                    seq=seq,
+                    contenttype=contenttype,
+                    content=content,
+                )
             # print("-", objtype, proxy.gramps_id, repr(proxy.handle), repr(proxy.content))
 
 

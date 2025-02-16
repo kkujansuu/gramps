@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2024      KKu
+# Copyright (C) 2024-2025      Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -64,8 +64,22 @@ class ProxyBase:
         data = pickle.loads(pickled)
         self.obj.unserialize(data)
 
-    def content_for_display(self, db):
-        return self.content(db)
+    def content_for_display(self, db, contenttype, seq):
+        (ctype, content) = list(self.content(db))[seq]
+        return content
+
+    def process_attributes(self):
+        for attr in self.obj.attribute_list:
+            name = str(attr.type) + " = " + attr.value
+            yield ("attr",  name)
+
+    def process_urls(self):
+        for url in self.obj.urls:
+            if url.desc:
+                name = url.path + " (" + url.desc + ")"
+            else:
+                name = url.path
+            yield ("url", name)
 
 
 class NoteProxy(ProxyBase):
@@ -79,7 +93,7 @@ class NoteProxy(ProxyBase):
         return db.get_number_of_notes()
 
     def content(self, db):
-        return str(self.obj.text).replace("\n", " ")
+        yield ("text", str(self.obj.text).replace("\n", " "))
 
     def from_handle(self, db, handle):
         self.obj = db.get_note_from_handle(handle)
@@ -89,7 +103,7 @@ class NoteProxy(ProxyBase):
         EditNote(dbstate, uistate, [], self.obj)
 
 
-class PersonProxy(ProxyBase):
+class PersonProxy(ProxyBase ):
     def __init__(self):
         self.obj = Person()
 
@@ -100,10 +114,11 @@ class PersonProxy(ProxyBase):
         return db.get_number_of_people()
 
     def content(self, db):
-        names = []
         for name in [self.obj.primary_name] + self.obj.alternate_names:
-            names.append(name.get_regular_name())
-        return " / ".join(names)
+            yield ("name", name.get_regular_name())
+
+        yield from self.process_attributes()
+        yield from self.process_urls()         
 
     def from_handle(self, db, handle):
         self.obj = db.get_person_from_handle(handle)
@@ -124,7 +139,8 @@ class EventProxy(ProxyBase):
         return db.get_number_of_events()
 
     def content(self, db):
-        return self.obj.description
+        yield ("description", self.obj.description)
+        yield from self.process_attributes()
 
     def from_handle(self, db, handle):
         self.obj = db.get_event_from_handle(handle)
@@ -145,13 +161,16 @@ class PlaceProxy(ProxyBase):
         return db.get_number_of_places()
 
     def content(self, db):
-        return self.obj.get_name().get_value()
+        yield ("name", self.obj.get_name().get_value())
+        yield from self.process_urls()         
 
-    def content_for_display(self, db):
-        names = [place_displayer.display(db, self.obj)] 
-        for pn in self.obj.get_alternative_names():
-            names.append(pn.get_value())
-        return " / ".join(names)
+    def content_for_display(self, db, contenttype, seq):
+        if contenttype == "name":
+            names = [place_displayer.display(db, self.obj)] 
+            for pn in self.obj.get_alternative_names():
+                names.append(pn.get_value())
+            return " / ".join(names)
+        return super().content_for_display(db, contenttype, seq)
 
     def from_handle(self, db, handle):
         self.obj = db.get_place_from_handle(handle)
@@ -171,7 +190,7 @@ class CitationProxy(ProxyBase):
         return db.get_number_of_citations()
 
     def content(self, db):
-        return self.obj.get_page()
+        yield ("page", self.obj.get_page())
 
     def from_handle(self, db, handle):
         self.obj = db.get_citation_from_handle(handle)
@@ -192,7 +211,7 @@ class SourceProxy(ProxyBase):
         return db.get_number_of_sources()
 
     def content(self, db):
-        return self.obj.get_title()
+        yield ("title", self.obj.get_title())
 
     def from_handle(self, db, handle):
         self.obj = db.get_source_from_handle(handle)
@@ -212,7 +231,8 @@ class RepositoryProxy(ProxyBase):
         return db.get_number_of_repositories()
 
     def content(self, db):
-        return self.obj.get_name()
+        yield ("name", self.obj.get_name())
+        yield from self.process_urls()         
 
     def from_handle(self, db, handle):
         self.obj = db.get_repository_from_handle(handle)
@@ -233,7 +253,8 @@ class MediaProxy(ProxyBase):
         return db.get_number_of_media()
 
     def content(self, db):
-        return self.obj.get_description()
+        yield ("description", self.obj.get_description())
+        yield from self.process_attributes()
 
     def from_handle(self, db, handle):
         self.obj = db.get_media_from_handle(handle)
@@ -241,34 +262,6 @@ class MediaProxy(ProxyBase):
     def edit(self, dbstate, uistate, handle):
         self.from_handle(dbstate.db, handle)
         EditMedia(dbstate, uistate, [], self.obj)
-
-class UrlProxy:
-    def content(self, db):
-        names = []
-        for url in self.obj.urls:
-            name = url.path + ": " + url.desc
-            names.append(name)
-        return " / ".join(names)
-
-class PersonUrlProxy(UrlProxy, PersonProxy):
-    pass
-
-class PlaceUrlProxy(UrlProxy, PlaceProxy):
-    pass
-
-class RepositoryUrlProxy(UrlProxy, RepositoryProxy):
-    pass
-
-class AttributeProxy:
-    def content(self, db):
-        names = []
-        for attr in self.obj.attribute_list:
-            name = str(attr.type) + " = " + attr.value
-            names.append(name)
-        return " / ".join(names)
-
-class PersonAttributeProxy(AttributeProxy, PersonProxy):
-    pass
 
 OBJTYPES = {
     "note": NoteProxy,
@@ -279,10 +272,6 @@ OBJTYPES = {
     "citation": CitationProxy,
     "repository": RepositoryProxy,
     "media": MediaProxy,
-    "personurl": PersonUrlProxy,
-    "placeurl": PlaceUrlProxy,
-    "repourl": RepositoryUrlProxy,
-    "personattr": PersonAttributeProxy,
 }
 
 

@@ -31,7 +31,7 @@ import uuid
 #import whoosh
 import whoosh.highlight
 from whoosh.index import create_in, open_dir
-from whoosh.fields import ID, TEXT, Schema
+from whoosh.fields import ID, TEXT, NUMERIC, Schema
 from whoosh.qparser import QueryParser
 from whoosh.lang import morph_en
 from whoosh.analysis import filters, StandardAnalyzer, RegexTokenizer, LowercaseFilter
@@ -209,7 +209,7 @@ class Tool(tool.Tool):
             if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS and event.button == 1:
                 model, treeiter = self.listview.get_selection().get_selected()  # type: ignore
                 row = list(model[treeiter])
-                objtype = row[1]
+                objtype = row[1].split(".")[0]
                 handle = row[3]
                 proxy = fulltext_objects.getproxy(objtype)
                 proxy.edit(self.dbstate, self.uistate, handle)
@@ -288,7 +288,9 @@ class SearchEngine:
         self.schema = Schema(
             objtype=TEXT(stored=True),
             title=TEXT(stored=True),
-            handle=ID(stored=True, unique=True),
+            handle=ID(stored=True),
+            seq=NUMERIC(stored=True),
+            contenttype=TEXT(stored=True),
             content=TEXT(analyzer=analyzer),
         )
         self.create_parser()
@@ -316,28 +318,24 @@ class SearchEngine:
         words = set()
         with ix.writer() as writer:
             for objtype in sorted(fulltext_objects.OBJTYPES):
-                print("-", objtype)
                 if canceled: break
                 proxy = fulltext_objects.getproxy(objtype)
                 if progress:
                     progress.set_pass("Indexing: " + objtype, proxy.countfunc(self.db))
-                print(proxy)
-                print( proxy.iterfunc)
-                print( proxy.iterfunc(self.db))
                 for obj in proxy.iterfunc(self.db):
                     if progress and progress.step():
                         canceled = True
                         break
                     proxy.obj = obj
-                    content=proxy.content(self.db)
-                    if objtype== "personattr" and content:
-                        print(">", content)
-                    writer.add_document(
-                        objtype=objtype,
-                        title=proxy.gramps_id,
-                        handle=proxy.handle,
-                        content=content,
-                    )
+                    for seq, (contenttype, content) in enumerate(proxy.content(self.db)):
+                        writer.add_document(
+                            objtype=objtype,
+                            title=proxy.gramps_id,
+                            handle=proxy.handle,
+                            seq=seq,
+                            contenttype=contenttype,
+                            content=content,
+                        )
                     words.update(re.split(r"\W+", content))
                     n += 1
 
@@ -375,9 +373,11 @@ class SearchEngine:
             for res in results:
                 objtype = res["objtype"]
                 handle = res["handle"]
+                seq = res["seq"]
+                contenttype = res["contenttype"]
                 proxy = fulltext_objects.getproxy(objtype)
                 proxy.from_handle(self.db, handle)
-                text = proxy.content_for_display(self.db)
+                text = proxy.content_for_display(self.db, contenttype, seq)
                 hltext = res.highlights("content", text=text)
                 hltext2 = hltext.replace(ColorFormatter.PREFIX1, "").replace(ColorFormatter.SUFFIX1, "")
                 if not text.startswith(hltext2): hltext = "..." + hltext
@@ -386,7 +386,7 @@ class SearchEngine:
                 hltext = (hltext.replace(ColorFormatter.PREFIX1, ColorFormatter.PREFIX2)
                           .replace(ColorFormatter.SUFFIX1, ColorFormatter.SUFFIX2)) 
 
-                rows.append([proxy.gramps_id, objtype, hltext, handle])
+                rows.append([proxy.gramps_id, objtype+"."+contenttype, hltext, handle])
                 n += 1
             t2 = time.time()
             return rows, t2-t1
