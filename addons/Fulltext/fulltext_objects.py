@@ -98,9 +98,9 @@ class NoteProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_note_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditNote(dbstate, uistate, [], self.obj)
+        EditNote(dbstate, uistate, track, self.obj)
 
 
 class PersonProxy(ProxyBase ):
@@ -123,9 +123,9 @@ class PersonProxy(ProxyBase ):
     def from_handle(self, db, handle):
         self.obj = db.get_person_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditPerson(dbstate, uistate, [], self.obj)
+        EditPerson(dbstate, uistate, track, self.obj)
 
 
 class EventProxy(ProxyBase):
@@ -145,9 +145,9 @@ class EventProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_event_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditEvent(dbstate, uistate, [], self.obj)
+        EditEvent(dbstate, uistate, track, self.obj)
 
 
 class PlaceProxy(ProxyBase):
@@ -177,9 +177,9 @@ class PlaceProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_place_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditPlace(dbstate, uistate, [], self.obj)
+        EditPlace(dbstate, uistate, track, self.obj)
 
 class CitationProxy(ProxyBase):
     def __init__(self):
@@ -197,9 +197,9 @@ class CitationProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_citation_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditCitation(dbstate, uistate, [], self.obj)
+        EditCitation(dbstate, uistate, track, self.obj)
 
 
 class SourceProxy(ProxyBase):
@@ -218,9 +218,9 @@ class SourceProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_source_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditSource(dbstate, uistate, [], self.obj)
+        EditSource(dbstate, uistate, track, self.obj)
 
 class RepositoryProxy(ProxyBase):
     def __init__(self):
@@ -239,9 +239,9 @@ class RepositoryProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_repository_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditRepository(dbstate, uistate, [], self.obj)
+        EditRepository(dbstate, uistate, track, self.obj)
 
 
 class MediaProxy(ProxyBase):
@@ -261,9 +261,9 @@ class MediaProxy(ProxyBase):
     def from_handle(self, db, handle):
         self.obj = db.get_media_from_handle(handle)
 
-    def edit(self, dbstate, uistate, handle):
+    def edit(self, dbstate, uistate, handle, track):
         self.from_handle(dbstate.db, handle)
-        EditMedia(dbstate, uistate, [], self.obj)
+        EditMedia(dbstate, uistate, track, self.obj)
 
 OBJTYPES = {
     "note": NoteProxy,

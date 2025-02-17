@@ -44,6 +44,7 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 
 from gramps.gui.dialog import ErrorDialog, QuestionDialog
 from gramps.gui.glade import Glade
+from gramps.gui.managedwindow import ManagedWindow
 from gramps.gui.plug import tool
 from gramps.gui.utils import ProgressMeter
 
@@ -79,6 +80,19 @@ class ColorFormatter(whoosh.highlight.Formatter):
 
         # Return the text as you want it to appear in the highlighted string
         return ColorFormatter.PREFIX1 + tokentext + ColorFormatter.SUFFIX1
+
+class FulltextWindow(ManagedWindow):
+    def __init__(self, uistate, window):
+        ManagedWindow.__init__(self, uistate, [], window, modal=False)
+        self.set_window(window, None, "Fulltext Search")
+        window.show()
+
+    def build_menu_names(self, obj): 
+        # type: (Any) -> Tuple[str,str]
+        """
+        Needed by ManagedWindow to build the Windows menu
+        """
+        return ('Fulltext Search', 'Fulltext Search')
         
 # -------------------------------------------------------------------------
 #
@@ -167,7 +181,7 @@ class Tool(tool.Tool):
             msg = "Fulltext search works only with SQLite databases"
             self.msg.set_text(msg)
 
-        self.glade.toplevel.show()
+        self.mw = FulltextWindow(self.uistate, self.glade.toplevel)
 
     def set_entry_completion(self):
         self.completion_list = Gtk.ListStore(str)
@@ -212,7 +226,7 @@ class Tool(tool.Tool):
                 objtype = row[1].split(".")[0]
                 handle = row[3]
                 proxy = fulltext_objects.getproxy(objtype)
-                proxy.edit(self.dbstate, self.uistate, handle)
+                proxy.edit(self.dbstate, self.uistate, handle, self.mw.track)
 
                 return True
         except:
