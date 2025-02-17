@@ -122,6 +122,7 @@ class Tool(tool.Tool):
         self.box1 = self.glade.get_child_object("box1")
         self.box2 = self.glade.get_child_object("box2")
         self.msg = self.glade.get_child_object("msg")
+        self.msg1 = self.glade.get_child_object("msg1")
         self.msg2 = self.glade.get_child_object("msg2")
         self.create_index_button = self.glade.get_child_object("create_index")
         self.search_button = self.glade.get_child_object("search")
@@ -140,7 +141,7 @@ class Tool(tool.Tool):
 
         self.delete_index_button.connect("clicked", self.do_delete_index)
         self.build_index_button.connect("clicked", self.build_index1)
-        self.close_button.connect("clicked", lambda *args: self.glade.toplevel.destroy())
+        self.close_button.connect("clicked", lambda *args: self.glade.toplevel.close())
 
         self.dbstate.connect("database-changed", self.db_changed)
 
@@ -161,10 +162,21 @@ class Tool(tool.Tool):
         fulltext_config.load()
         lastquery = fulltext_config.get("defaults.querytext")
         self.query_field.set_text(lastquery)
-            
 
+        ret = self.engine.init_fulltext()
+        if ret == self.engine.ERR_DB_NOT_OPEN:            
+            ErrorDialog("Error", "Database is not open")
+            return
+
+        self.msg1.set_text("Search index does not exist")
         self.msg.set_text("")
-        if os.path.exists(self.engine.indexdir):
+        if os.path.exists(self.engine.indexdir) and not self.engine.version_ok():
+            self.msg1.set_text("Search index version is unsupported. Please rebuild.")
+            self.create_index_button.show()
+            self.create_index_button.set_label("Rebuild index")
+            self.box2.hide()
+            #return
+        elif os.path.exists(self.engine.indexdir):
             self.box1.hide()
             self.box2.show_all()
             self.query_field.set_sensitive(True)
@@ -182,7 +194,7 @@ class Tool(tool.Tool):
             self.msg.set_text(msg)
 
         self.mw = FulltextWindow(self.uistate, self.glade.toplevel)
-
+    
     def set_entry_completion(self):
         self.completion_list = Gtk.ListStore(str)
 
@@ -283,20 +295,24 @@ class Tool(tool.Tool):
             self.msg2.set_text("Results: {} (time {:.2f} s)".format(len(rows), elapsed))
 
 class SearchEngine:
+    VERSION = 2
+    ERR_OK = 0
+    ERR_DB_NOT_OPEN = 1
+    ERR_UNSUPPORTED_VERSION = 2
+
     def __init__(self, dbstate):
         self.dbstate = dbstate
         self.db = dbstate.db
-        self.init_fulltext()
         
     def init_fulltext(self):
         dbpath = gconfig.get("database.path")
         dbid = self.db.get_dbid()
         if not dbid:
-            ErrorDialog("Error", "Database is not open")
-            return
+            return self.ERR_DB_NOT_OPEN
 
         self.indexdir = os.path.join(dbpath, dbid, "indexdir")
         self.wordfile = self.indexdir + ".words"
+        self.versionfile = self.indexdir + ".version"
 
         analyzer = RegexTokenizer(r"\w+|@|\$|£|€|#|=|\[|\]") | LowercaseFilter()
         self.schema = Schema(
@@ -309,6 +325,17 @@ class SearchEngine:
         )
         self.create_parser()
 
+        if os.path.exists(self.indexdir) and not self.version_ok():
+            return self.ERR_UNSUPPORTED_VERSION
+        
+        return self.ERR_OK
+
+    def version_ok(self):
+        if not os.path.exists(self.versionfile):
+            return False
+        version = int(open(self.versionfile, "rt").read())
+        return version == self.VERSION 
+
     def create_parser(self):
         self.parser = QueryParser("content", self.schema)
         self.parser.add_plugin(whoosh.qparser.FuzzyTermPlugin())
@@ -319,6 +346,8 @@ class SearchEngine:
             shutil.rmtree(self.indexdir)
         if os.path.exists(self.wordfile):
             os.remove(self.wordfile)
+        if os.path.exists(self.versionfile):
+            os.remove(self.versionfile)
         fulltext_loader.disable_trace(self.db)
 
     def build_index(self, _widget=None, progress=None):
@@ -359,6 +388,7 @@ class SearchEngine:
         
         fulltext_loader.enable_trace(self.db)
         t2 = time.time()
+        open(self.versionfile, "wt").write(str(self.VERSION))
         return n, t2-t1
 
     def search(self, query_text, limit):
