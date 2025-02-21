@@ -385,7 +385,7 @@ class Tool(tool.Tool, ManagedWindow):
             (msg1, msg2) = msg.messages()
             ErrorDialog(msg1, msg2, parent=self.window)
             return
-        ShowResults(self.dbstate, self.uistate, self.track, handle_list,
+        ShowResults(self.dbstate, self.uistate, [], handle_list,
                     self.current_filtername, self.current_category)
 
     def update(self, current_filtername=None):
