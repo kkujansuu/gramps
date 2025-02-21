@@ -1136,7 +1136,7 @@ class ShowResults(ManagedWindow):
             col = Gtk.TreeViewColumn(_('Description'), render, text=2)
             col.set_clickable(True)
             col.set_resizable(True)
-            col.set_sort_column_id(3)
+            col.set_sort_column_id(2)
             self.treeview.append_column(col)
         elif self.namespace == "Citation":
             col = Gtk.TreeViewColumn(_('Page'), render, text=1)
@@ -1148,7 +1148,7 @@ class ShowResults(ManagedWindow):
             col = Gtk.TreeViewColumn(_('Source'), render, text=2)
             col.set_clickable(True)
             col.set_resizable(True)
-            col.set_sort_column_id(3)
+            col.set_sort_column_id(2)
             self.treeview.append_column(col)
         else:
             col = Gtk.TreeViewColumn(_('Name'), render, text=1)
