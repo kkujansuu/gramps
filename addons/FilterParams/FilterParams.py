@@ -1158,6 +1158,7 @@ class ShowResults(ManagedWindow):
             self.treeview.append_column(col)
 
         self.treeview.connect("button-press-event", self.button_press)
+        self.treeview.get_selection().connect("changed", self.activate_object)
 
         glade.get_child_object('test_close').connect('clicked', self.close)
         glade.get_child_object('open_button').connect('clicked', self.open_object)
@@ -1200,6 +1201,14 @@ class ShowResults(ManagedWindow):
             pass
         except:
             traceback.print_exc()
+
+    def activate_object(self, selection):
+        # type: (Gtk.Widget) -> None
+        model, treeiter = selection.get_selected()
+        if treeiter is None: return # list is empty
+        row = list(model[treeiter])
+        obj = row[-1]
+        self.uistate.set_active(obj.handle, self.namespace)
 
     def get_obj(self, handle):
         # type: (str) -> Tuple[str,str,str,Any]
