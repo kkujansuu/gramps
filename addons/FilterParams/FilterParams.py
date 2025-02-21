@@ -1179,7 +1179,7 @@ class ShowResults(ManagedWindow):
 
         for s_, handle in new_list:
             gid, name, name2, sortvalue, obj = self.get_obj(handle)
-            model.append(row=[gid, name[0:30], name2[0:30], sortvalue, obj])
+            model.append(row=[gid, name, name2, sortvalue, obj])
 
         glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
         self.show()
@@ -1256,7 +1256,7 @@ class ShowResults(ManagedWindow):
             citation = self.db.get_citation_from_handle(handle)
             src_handle = citation.get_reference_handle()
             source = self.db.get_source_from_handle(src_handle)
-            name = citation.get_page()
+            name = citation.get_page()[:30]
             name2 = source.get_title()
             gid = citation.get_gramps_id()
             obj = citation
