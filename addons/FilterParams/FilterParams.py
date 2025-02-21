@@ -1170,7 +1170,7 @@ class ShowResults(ManagedWindow):
 
         for s_, handle in new_list:
             gid, name, name2, obj = self.get_obj(handle)
-            model.append(row=[gid, name, name2, obj])
+            model.append(row=[gid, name[0:30], name2[0:30], obj])
 
         glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
         self.show()
