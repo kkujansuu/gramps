@@ -1093,12 +1093,12 @@ class ShowResults(ManagedWindow):
 
     def __init__(self, dbstate, uistate, track, handle_list, filtname, namespace):
         # type: (DbState,DisplayState,list,list,str,str) -> None
+        self.filtname = filtname # so that build_menu_names can see it
+        self.namespace = namespace
         ManagedWindow.__init__(self, uistate, track, self)
 
         self.dbstate = dbstate
         self.db = dbstate.db
-        self.filtname = filtname
-        self.namespace = namespace
         self.category_info = get_category_info(self.db, namespace)
         glade = Glade(toplevel='test')
 
@@ -1189,8 +1189,7 @@ class ShowResults(ManagedWindow):
         """
         Needed by ManagedWindow to build the Windows menu
         """
-        return (_('Test run result'), None)
-        return (_('Test run result'), _('Test run result'))
+        return (_(f'Test run result ({_(self.namespace)}: {self.filtname})'), None)
 
     def button_press(self, _listview, event):
         # type: (Gtk.TreeView, Gtk. Event) -> None
