@@ -62,6 +62,7 @@ from gramps.gen.lib import (
 )
 from gramps.gen.utils.callman import CallbackManager
 from gramps.gen.utils.db import family_name
+from gramps.gen.utils.db import get_birth_or_fallback
 from gramps.gen.utils.string import conf_strings
 from gramps.gui.dbguielement import DbGUIElement
 from gramps.gui.dialog import ErrorDialog, QuestionDialog
@@ -1117,7 +1118,8 @@ class ShowResults(ManagedWindow):
         render = Gtk.CellRendererText()
 
         self.treeview = glade.get_child_object('list')
-        model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING, GObject.TYPE_STRING, object)
+        model = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING, 
+                              GObject.TYPE_STRING, GObject.TYPE_INT, object)
         self.treeview.set_model(model)
 
         col = Gtk.TreeViewColumn(_('ID'), render, text=0)
@@ -1157,6 +1159,13 @@ class ShowResults(ManagedWindow):
             col.set_sort_column_id(1)
             self.treeview.append_column(col)
 
+        if self.namespace == "Person":
+            col = Gtk.TreeViewColumn(_('Birth'), render, text=2)
+            col.set_clickable(True)
+            col.set_resizable(True)
+            col.set_sort_column_id(3)
+            self.treeview.append_column(col)
+
         self.treeview.connect("button-press-event", self.button_press)
         self.treeview.get_selection().connect("changed", self.activate_object)
 
@@ -1169,8 +1178,8 @@ class ShowResults(ManagedWindow):
                         )
 
         for s_, handle in new_list:
-            gid, name, name2, obj = self.get_obj(handle)
-            model.append(row=[gid, name[0:30], name2[0:30], obj])
+            gid, name, name2, sortvalue, obj = self.get_obj(handle)
+            model.append(row=[gid, name[0:30], name2[0:30], sortvalue, obj])
 
         glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
         self.show()
@@ -1180,6 +1189,7 @@ class ShowResults(ManagedWindow):
         """
         Needed by ManagedWindow to build the Windows menu
         """
+        return (_('Test run result'), None)
         return (_('Test run result'), _('Test run result'))
 
     def button_press(self, _listview, event):
@@ -1213,11 +1223,20 @@ class ShowResults(ManagedWindow):
     def get_obj(self, handle):
         # type: (str) -> Tuple[str,str,str,Any]
         name2 = ""
+        sortvalue = 0
         if self.namespace == 'Person':
             person = self.db.get_person_from_handle(handle)
             name = name_displayer.sorted(person)
             gid = person.get_gramps_id()
             obj = person
+            event = get_birth_or_fallback(self.db, obj)
+            if event and event.date:
+                name2 = str(event.date)
+                sortvalue = event.date.sortval
+            else:
+                name2 = ""
+                sortvalue = 0 
+            
         elif self.namespace == 'Family':
             family = self.db.get_family_from_handle(handle)
             name = family_name(family, self.db)
@@ -1263,7 +1282,7 @@ class ShowResults(ManagedWindow):
                 name = name[:80]+"..."
             gid = note.get_gramps_id()
             obj = note
-        return (gid, name, name2, obj)
+        return (gid, name, name2, sortvalue, obj)
 
     def sort_val_from_handle(self, handle):
         # type: (str) -> Tuple[str,str]
