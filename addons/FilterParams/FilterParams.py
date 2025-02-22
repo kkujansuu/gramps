@@ -1167,7 +1167,6 @@ class ShowResults(ManagedWindow):
             self.treeview.append_column(col)
 
         self.treeview.connect("button-press-event", self.button_press)
-        self.treeview.get_selection().connect("changed", self.activate_object)
 
         glade.get_child_object('test_close').connect('clicked', self.close)
         glade.get_child_object('open_button').connect('clicked', self.open_object)
@@ -1189,14 +1188,55 @@ class ShowResults(ManagedWindow):
         """
         Needed by ManagedWindow to build the Windows menu
         """
-        return (_(f'Test run result ({_(self.namespace)}: {self.filtname})'), None)
+        return (_("Result"), _("Test run result ({}: {})").format(self.namespace, self.filtname))
+
+    def _select_row_at_coords(self, x, y):
+        """
+        Select the row at the current cursor position.
+        """
+        wx, wy = self.treeview.convert_bin_window_to_widget_coords(x, y)
+        row = self.treeview.get_dest_row_at_pos(wx, wy)
+        if row:
+            self.treeview.get_selection().select_path(row[0])
 
     def button_press(self, _listview, event):
         # type: (Gtk.TreeView, Gtk. Event) -> None
+        self._select_row_at_coords(event.x, event.y)
         if not self.db.db_is_open:
             return
+        if self.is_right_click(event): # popup menu code copied from embeddedlists.py
+            model, treeiter = self.treeview.get_selection().get_selected()
+            if treeiter is None: return # list is empty
+            row = list(model[treeiter])
+            obj = row[-1]
+            self.right_click(obj, event)
+            return True
         if event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS and event.button == 1:
             self.open_object(None)
+
+    def is_right_click(self, event):
+        """
+        Returns True if the event is to open the context menu.
+        """
+        from gi.repository import Gdk
+    
+        if Gdk.Event.triggers_context_menu(event):
+            return True
+
+    def right_click(self, obj, event): 
+        """
+        On right click show a popup menu.
+        """
+        self.__store_menu = Gtk.Menu()  # need to keep reference or menu disappears
+        menu = self.__store_menu
+        menu.set_reserve_toggle_size(False)
+        item = Gtk.MenuItem.new_with_mnemonic("Activate")
+        item.connect("activate", lambda *x: self.uistate.set_active(obj.handle, self.namespace))
+        item.show()
+        menu.append(item)
+        menu.popup_at_pointer(event)
+        return True
+
 
     def open_object(self, _widget):
         # type: (Gtk.Widget) -> None
@@ -1210,14 +1250,6 @@ class ShowResults(ManagedWindow):
             pass
         except:
             traceback.print_exc()
-
-    def activate_object(self, selection):
-        # type: (Gtk.Widget) -> None
-        model, treeiter = selection.get_selected()
-        if treeiter is None: return # list is empty
-        row = list(model[treeiter])
-        obj = row[-1]
-        self.uistate.set_active(obj.handle, self.namespace)
 
     def get_obj(self, handle):
         # type: (str) -> Tuple[str,str,str,Any]
