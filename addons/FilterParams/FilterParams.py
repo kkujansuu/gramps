@@ -1230,10 +1230,17 @@ class ShowResults(ManagedWindow):
         self.__store_menu = Gtk.Menu()  # need to keep reference or menu disappears
         menu = self.__store_menu
         menu.set_reserve_toggle_size(False)
+
         item = Gtk.MenuItem.new_with_mnemonic("Activate")
-        item.connect("activate", lambda *x: self.uistate.set_active(obj.handle, self.namespace))
-        item.show()
+        item.connect("activate", lambda _menuitem: self.uistate.set_active(obj.handle, self.namespace))
         menu.append(item)
+        item.show()
+
+        item = Gtk.MenuItem.new_with_mnemonic("Copy to clipboard")
+        item.connect("activate", lambda _menuitem: self.copy_to_clipboard(obj.handle, self.namespace))
+        menu.append(item)
+        item.show()
+
         menu.popup_at_pointer(event)
         return True
 
@@ -1251,6 +1258,13 @@ class ShowResults(ManagedWindow):
         except:
             traceback.print_exc()
 
+    def copy_to_clipboard(self, handle, namespace):
+        # Exploit PageView.copy_to_clipboard.
+        # Use 'self' to emulate a PageView object since
+        # PageView.copy_to_clipboard only needs an object that contains dbstate and uistate.
+        from gramps.gui.views.pageview import PageView
+        PageView.copy_to_clipboard(self, namespace, [handle])
+        
     def get_obj(self, handle):
         # type: (str) -> Tuple[str,str,str,Any]
         name2 = ""
