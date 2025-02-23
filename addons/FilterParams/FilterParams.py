@@ -1181,6 +1181,7 @@ class ShowResults(ManagedWindow):
             model.append(row=[gid, name, name2, sortvalue, obj])
 
         glade.get_child_object('open_button').set_sensitive(len(new_list) > 0)
+        self.db_changed_key = self.dbstate.connect("database-changed", self.db_changed)
         self.show()
 
     def build_menu_names(self, obj):
@@ -1190,6 +1191,10 @@ class ShowResults(ManagedWindow):
         """
         return (_("Result"), _("Test run result ({}: {})").format(self.namespace, self.filtname))
 
+    def db_changed(self, db):
+        self.dbstate.disconnect(self.db_changed_key)  
+        self.close()
+        
     def _select_row_at_coords(self, x, y):
         """
         Select the row at the current cursor position.
