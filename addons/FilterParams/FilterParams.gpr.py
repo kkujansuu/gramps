@@ -26,15 +26,17 @@ from gramps.version import major_version, VERSION_TUPLE
 
 plug.tool.tool_categories["Isotammi"] = ("Isotammi", _("Isotammi tools"))
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 #
 # FilterParams
 #
 # See https://github.com/kkujansuu/gramps/edit/master/addons/FilterParams/
 #
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
-help_url = "https://gramps-project.org/wiki/index.php/Addon:Isotammi_addons#FilterParams_tool"
+help_url = (
+    "https://gramps-project.org/wiki/index.php/Addon:Isotammi_addons#FilterParams_tool"
+)
 
 
 if VERSION_TUPLE < (5, 2, 0):
