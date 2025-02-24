@@ -231,6 +231,7 @@ class SourceProxy(ProxyBase):
 
     def content(self):
         yield ("title", self.obj.get_title())
+        yield ("author", self.obj.get_author())
 
     def from_handle(self, db, handle):
         self.obj = db.get_source_from_handle(handle)
