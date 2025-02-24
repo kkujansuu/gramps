@@ -210,6 +210,7 @@ class CitationProxy(ProxyBase):
 
     def content(self):
         yield ("page", self.obj.get_page())
+        yield from self.process_attributes()
 
     def from_handle(self, db, handle):
         self.obj = db.get_citation_from_handle(handle)
@@ -232,6 +233,7 @@ class SourceProxy(ProxyBase):
     def content(self):
         yield ("title", self.obj.get_title())
         yield ("author", self.obj.get_author())
+        yield from self.process_attributes()
 
     def from_handle(self, db, handle):
         self.obj = db.get_source_from_handle(handle)
