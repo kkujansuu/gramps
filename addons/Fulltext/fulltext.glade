@@ -124,9 +124,9 @@
                 <child>
                   <object class="GtkButton" id="build_index">
                     <property name="label" translatable="yes">Rebuild index</property>
-                    <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="no_show_all">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
