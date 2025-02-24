@@ -144,7 +144,8 @@ class Tool(tool.Tool, ManagedWindow):
         self.user = user
         self.uistate = user.uistate
         self.dbstate = dbstate
-        # self.track = []
+        self.options_class = options_class
+        self.name = name
         self.config = configman.register_manager(name)
         self.config.register("lastfilter.namespace", "")
         self.config.register("lastfilter.filtername", "")
@@ -191,7 +192,7 @@ class Tool(tool.Tool, ManagedWindow):
         """
         Needed by ManagedWindow to build the Windows menu
         """
-        return ("FilterParams", "FilterParams")
+        return ("FilterParams", None)
 
     def database_changed(self, db):
         # type: (DbGeneric) -> None
@@ -257,7 +258,7 @@ class Tool(tool.Tool, ManagedWindow):
         # type: () -> Gtk.Dialog
         glade = Glade(toplevel="dialog1")
         self.dialog = glade.toplevel
-        combo_categories = glade.get_child_object("combo_categories")
+        self.combo_categories = glade.get_child_object("combo_categories")
         self.combo_filters = glade.get_child_object("combo_filters")
         self.add_button = glade.get_child_object("add_button")
         self.edit_button = glade.get_child_object("edit_button")
@@ -296,13 +297,13 @@ class Tool(tool.Tool, ManagedWindow):
             self.close_button.connect("clicked", self.close_clicked)
 
         for cat in self.categories_translated:
-            combo_categories.append_text(cat)
-        combo_categories.connect("changed", self.on_category_changed)
+            self.combo_categories.append_text(cat)
+        self.combo_categories.connect("changed", self.on_category_changed)
 
         if self.current_category not in self.categories:
             self.current_category = "Person"
         i = self.categories.index(self.current_category)
-        combo_categories.set_active(i)
+        self.combo_categories.set_active(i)
 
         # put the dialog close to the parent window
         x, y = self.parent_window.get_position()
@@ -423,6 +424,9 @@ class Tool(tool.Tool, ManagedWindow):
             handle_list,
             self.current_filtername,
             self.current_category,
+            self.user,
+            self.options_class,
+            self.name,
         )
 
     def update(self, current_filtername=None):
@@ -1186,25 +1190,44 @@ def get_category_info(db, category_name):
 class ShowResults(ManagedWindow):
     """Adapted from gramps/gui/editors/filtereditor.py"""
 
-    def __init__(self, dbstate, uistate, track, handle_list, filtname, namespace):
+
+    
+    def __init__(self, dbstate, uistate, track, handle_list, filtname, namespace, user, options_class, name):
         # type: (DbState,DisplayState,list,list,str,str) -> None
-        self.filtname = filtname  # so that build_menu_names can see it
-        self.namespace = namespace
+        self.filtname = filtname    # set these before invoking ManagedWindow.__init__
+        self.namespace = namespace  # so that build_menu_names can see the values
+        
         ManagedWindow.__init__(self, uistate, track, self)
 
         self.dbstate = dbstate
         self.db = dbstate.db
+        self.user = user
+        self.options_class = options_class
+        self.name = name
+        
         self.category_info = get_category_info(self.db, namespace)
         glade = Glade(toplevel="test")
 
         test_title = glade.get_child_object("test_title")
-        title = "{namespace}: {filtname} ({n} {objects})".format(
+        title = '<a href="#">{namespace}: {filtname}</a>'.format(
             namespace=_(namespace),
             filtname=filtname,
-            objects=_("objects"),
-            n=len(handle_list),
         )
-        test_title.set_label(title)
+        test_title.set_markup(title)
+        test_title2 = glade.get_child_object("test_title2")
+        n = len(handle_list)
+        title2 = '{n} {objects}'.format(
+            objects=_("object") if n == 1 else _("objects"),
+            n=n,
+        )
+        test_title2.set_text(title2)
+
+        test_title.connect("button_press_event", self.invoke_tool) # lambda *x: print("link", x)) 
+        
+        
+        
+        
+
 
         self.set_window(glade.get_child_object("test"), None, _("Filter Test"))
 
@@ -1288,7 +1311,7 @@ class ShowResults(ManagedWindow):
         Needed by ManagedWindow to build the Windows menu
         """
         return (
-            _("Result"),
+            _("Results"),
             _("Test run result ({}: {})").format(self.namespace, self.filtname),
         )
 
@@ -1296,6 +1319,27 @@ class ShowResults(ManagedWindow):
         self.dbstate.disconnect(self.db_changed_key)
         self.close()
 
+    def find_tool_window(self, tree):
+        if isinstance(tree, list):
+            for item in tree:
+                tool = self.find_tool_window(item)
+                if tool: return tool
+        elif isinstance(tree, Tool):
+            return tree
+        else:
+            return None
+
+    def invoke_tool(self, _label, _event):
+        tool = self.find_tool_window(self.uistate.gwm.window_tree)
+        if tool is None:
+            tool = Tool(self.dbstate, self.user, self.options_class, self.name)
+        tool.current_category = self.namespace
+        tool.current_filtername = self.filtname
+        i = tool.categories.index(tool.current_category)
+        tool.combo_categories.set_active(i)
+        tool.populate_filters(tool.current_category)
+        tool.dialog.present_with_time(_event.time)
+    
     def _select_row_at_coords(self, x, y):
         """
         Select the row at the current cursor position.
