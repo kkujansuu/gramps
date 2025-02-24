@@ -114,8 +114,25 @@ class PersonProxy(ProxyBase ):
         return db.get_number_of_people()
 
     def content(self):
+        contenttype = "name"
         for name in [self.obj.primary_name] + self.obj.alternate_names:
-            yield ("name", name.get_regular_name())
+            # name formatted like 'regular_name' but nickname is added after first name
+            first = name.first_name
+            surname = name.get_surname()
+            nick = name.get_nick_name()
+            if nick:
+                first += f" ({nick})"
+            if name.suffix == "":
+                fullname = "%s %s" % (first, surname)
+            else:
+                fullname = "%(first)s %(surname)s, %(suffix)s" % {
+                    "surname": surname,
+                    "first": first,
+                    "suffix": name.suffix,
+                }
+                
+            yield (contenttype, fullname)
+            contenttype = "altname"
 
         yield from self.process_attributes()
         yield from self.process_urls()         

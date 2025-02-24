@@ -295,7 +295,8 @@ class Tool(tool.Tool):
             self.msg2.set_text("Results: {} (time {:.2f} s)".format(len(rows), elapsed))
 
 class SearchEngine:
-    VERSION = 2
+    VERSION = 3
+    
     ERR_OK = 0
     ERR_DB_NOT_OPEN = 1
     ERR_UNSUPPORTED_VERSION = 2
