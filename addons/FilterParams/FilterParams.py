@@ -192,7 +192,7 @@ class Tool(tool.Tool, ManagedWindow):
         """
         Needed by ManagedWindow to build the Windows menu
         """
-        return ("FilterParams", None)
+        return ("FilterParams", 'FilterParams')
 
     def database_changed(self, db):
         # type: (DbGeneric) -> None
