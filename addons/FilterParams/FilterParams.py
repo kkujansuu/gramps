@@ -213,16 +213,19 @@ class Tool(tool.Tool, ManagedWindow):
         filters = self.filterdb.get_filters_dict(category)
         self.filternames = []
         self.combo_filters.get_model().clear()
-        for filter in filters.values():
+        current_index = -1
+        for i, filter in enumerate(filters.values()):
             filtername = filter.get_name()
             self.filternames.append(filtername)
             self.combo_filters.append_text(filtername)
+            # activate the current filter
+            # or, after deleting a filter, activate the next one
+            if current_index == -1 and filtername.lower() >= self.current_filtername.lower():
+                current_index = i
         if len(self.filternames) > 0:
-            if self.current_filtername in self.filternames:
-                current_index = self.filternames.index(self.current_filtername)
-                self.combo_filters.set_active(current_index)
-            else:
-                self.combo_filters.set_active(0)
+            if current_index == -1:
+                current_index = len(self.filternames) - 1  # activate the last in list
+            self.combo_filters.set_active(current_index)
             self.enable_buttons(True)
         else:
             self.enable_buttons(False)
