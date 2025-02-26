@@ -566,6 +566,7 @@ class Tool(tool.Tool, ManagedWindow):
         gfilter = self.getfilter(self.current_category, self.current_filtername)
         self._do_delete_filter(self.current_category, gfilter)
         self.update()
+        self.combo_filters.grab_focus()
 
     def _do_delete_filter(self, space, gfilter):
         # type: (str,str) -> None
