@@ -32,7 +32,9 @@ https://github.com/kkujansuu/gramps/tree/master/addons/DoYouKnowYourFamily
 
 An enhanced filter editor
 
-https://github.com/kkujansuu/gramps/tree/master/addons/FilterParams
+This has been moved to
+
+https://github.com/Taapeli/isotammi-addons/tree/master/source/FilterParams
 
 ***
 
