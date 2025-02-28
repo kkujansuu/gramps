@@ -27,12 +27,12 @@ from gramps.version import major_version
 
 register(
     GENERAL,
-    id="familyeditor",
-    name=_("familyeditor"),
+    id="parentplaces",
+    name=_("parentplaces"),
     description=_(""),
-    version="0.9.0",
+    version="0.9.1",
     gramps_target_version=major_version,
     status=STABLE,
-    fname="familyeditor.py",
+    fname="parentplaces.py",
     load_on_reg=True,
 )

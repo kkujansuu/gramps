@@ -44,14 +44,6 @@ https://github.com/kkujansuu/gramps/tree/master/addons/events_and_citations
 
 ***
 
-### FamilyEditor
-
-Adds parents' birth and death places in the Family Editor.
-
-https://github.com/kkujansuu/gramps/tree/master/addons/familyeditor
-
-***
-
 ### FilterParams 
 
 An enhanced filter editor.
@@ -92,6 +84,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/nameformat
 Slightly modified version of the regular Notes gramplet.
 	
 https://github.com/kkujansuu/gramps/tree/master/addons/Notes2Gramplet
+
+***
+
+### ParentPlaces
+
+Adds parents' birth and death places in the Family Editor.
+
+https://github.com/kkujansuu/gramps/tree/master/addons/parentplaces
 
 ***
 
