@@ -91,7 +91,7 @@ https://github.com/kkujansuu/gramps/tree/master/addons/Notes2Gramplet
 
 Adds parents' birth and death places in the Family Editor.
 
-https://github.com/kkujansuu/gramps/tree/master/addons/parentplaces
+https://github.com/kkujansuu/gramps/tree/master/addons/ParentPlaces
 
 ***
 
