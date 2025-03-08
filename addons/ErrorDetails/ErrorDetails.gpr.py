@@ -29,7 +29,7 @@ register(
     authors=["Kari Kujansuu"],
     gramps_target_version=major_version,
     status=STABLE,
-    fname="TraceDialog.py",
+    fname="ErrorDetails.py",
     load_on_reg=True,
 )
 
