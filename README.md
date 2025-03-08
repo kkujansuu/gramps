@@ -36,6 +36,15 @@ https://github.com/kkujansuu/gramps/tree/master/addons/DoYouKnowYourFamily
 
 ***
 
+### ErrorDetails
+
+
+This addon adds a "Details" link to all ErrorDialogs. Clicking "Details" will display the stack trace that led to the error. You can copy and paste the text in the stack trace.
+
+https://github.com/kkujansuu/gramps/tree/master/addons/ErrorDetails
+
+***
+
 ### Events and Citations
 
 Helps in manipulating citations for a person.
