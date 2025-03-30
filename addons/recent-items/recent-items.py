@@ -60,12 +60,17 @@ from gramps.gen.lib import Source, Citation, Person
 from gramps.gui.editors.editperson import EditPerson
 from gramps.gui.editors.editprimary import EditPrimary
 from gramps.gui.editors.editreference import EditReference
-from gramps.gui.editors.editfamily import FastFemaleFilter, FastMaleFilter
 from gramps.gui.editors import EditPlaceRef
 from gramps.gui.selectors.selectplace import SelectPlace
 from gramps.gui.selectors.baseselector import BaseSelector
 from gramps.gui.widgets import SimpleButton
 from gramps.gui.widgets import PersistentTreeView
+
+from gramps.version import VERSION_TUPLE
+if VERSION_TUPLE < (6, 0, 0):
+    from gramps.gui.editors.editfamily import FastFemaleFilter, FastMaleFilter
+else:    
+    from gramps.gen.lib.json_utils import object_to_data
 
 # ------------------------------------------------------------------------
 #
@@ -93,7 +98,7 @@ def load_on_reg(dbstate, uistate, plugin):
     # patch some classes
     if not hasattr(BaseSelector, "orig_init"):
         BaseSelector.orig_init = BaseSelector.__init__
-    BaseSelector.__init__ = lambda self, *args, **kwargs: new_init(self, dbstate, *args, **kwargs)
+    BaseSelector.__init__ = lambda self, *args, **kwargs: new_init(self, *args, **kwargs)
 
     if not hasattr(BaseSelector, "orig_run"):
         BaseSelector.orig_run = BaseSelector.run
@@ -173,7 +178,7 @@ def get_namespace(self):
 # ------------------------------------------
 
 
-def new_init(self, dbstate, *args, **kwargs):
+def new_init(self, dbstate, uistate, *args, **kwargs):
     """
     This method will replace the __init__ method in BaseSelector.
 
@@ -182,21 +187,20 @@ def new_init(self, dbstate, *args, **kwargs):
     This is done by adding a Gtk.TreeView in the UI originally loaded from the Glade file baseselector.glade.
     The other widgets are moved down to make room for the TreeView.
     """
-    BaseSelector.orig_init(self, *args, **kwargs)
+    filter = kwargs.get("filter", None)
+    skip = kwargs.get("skip", [])
+    BaseSelector.orig_init(self, dbstate, uistate, *args, **kwargs)
 
-    # move other items down to make room for the TreeView at position 1
     vbox = self.glade.get_object("select_person_vbox")
-    #    - 4 items:
+    # Originally there are 4 items in vbox:
     #        title
     #        scrolledwindow
     #        showall checkbox
     #        label "Loading"
-    for i, c in enumerate(vbox.get_children()):
-        if i > 0:
-            vbox.child_set_property(c, "position", i + 1)
+    # Insert the new VBox (recent_box) at position 1:
     recent_box = Gtk.VBox()
     vbox.add(recent_box)
-    vbox.child_set_property(recent_box, "position", 1)
+    vbox.reorder_child(recent_box, 1)
 
     maxindex = max(index for colnam, width, coltype, index in self.get_column_titles())
     numcolumns = maxindex + 1
@@ -208,26 +212,28 @@ def new_init(self, dbstate, *args, **kwargs):
 
     BaseSelector.add_columns(self, tree)
     tree.restore_column_size()
-    filterobj = self.filter[1]
 
     def resizes(child):
         if isinstance(child, Gtk.ScrolledWindow):
             oldtree = child.get_child()
-            for col in oldtree.get_columns():
-                col.connect("notify::width", change_column_size, oldtree, tree)
+            if isinstance(oldtree, Gtk.TreeView):
+                for col in oldtree.get_columns():
+                    col.connect("notify::width", change_column_size, oldtree, tree)
 
     def change_column_size(col, width, oldtree, tree):
         oldtree.save_column_info()
         tree.restore_column_size()
 
+    namespace = get_namespace(self)
+    
     vbox.forall(resizes)
 
-    namespace = get_namespace(self)
     if namespace == "Person":
-        if isinstance(filterobj, FastFemaleFilter):
+        if self.title == _("Select Mother"):
             namespace = "Person-F"
-        if isinstance(filterobj, FastMaleFilter):
-            namespace = "Person-M"
+        if self.title == _("Select Father"):
+            namespace = "Person-M"            
+
     dbid = self.db.get_dbid()
     recent_data = get_recent_data()
     olddata = recent_data.get(dbid, {}).get(
@@ -236,13 +242,16 @@ def new_init(self, dbstate, *args, **kwargs):
     
     
     for handle in olddata:
+        if handle in skip:
+            continue
         try:
             obj = self.get_from_handle_func()(handle)
         except HandleError:
             continue  # object probably deleted, skip
-        if namespace == "Person" and filterobj and not filterobj.match(handle, self.db):
-            continue        
-        data = obj.serialize()
+        if VERSION_TUPLE < (6, 0, 0):
+            data = obj.serialize()
+        else:
+            data = object_to_data(obj) 
         values = [""] * numcolumns
         for colnam, width, coltype, index in self.get_column_titles():
             fmap = self.model.fmap
@@ -268,13 +277,12 @@ def new_init(self, dbstate, *args, **kwargs):
     msg = "<b>" + _("Recent items:") + "</b>"
     if len(model) == 0:  # no recent items to display
         msg += " " + _("None")
+    else:
+        model.append([""]*(numcolumns+1))  # add extra blank row at the bottom 
     header = Gtk.HBox()
-    header.set_size_request(-1,-1)
     lbl = Gtk.Label(msg)
     lbl.set_use_markup(True)
     lbl.set_halign(Gtk.Align.START)
-
-    header.add(lbl)
 
     sw = Gtk.ScrolledWindow()
     sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -282,11 +290,11 @@ def new_init(self, dbstate, *args, **kwargs):
     sw.set_min_content_height(100)
 
     vbox = Gtk.VBox()
-    vbox.pack_start(tree, False, False, padding=15)
+    vbox.add(tree)
     sw.add(vbox)
-    recent_box.add(header)
+    recent_box.add(lbl)
     recent_box.add(sw)
-    recent_box.show_all()    
+    recent_box.show_all()   
 
     # activate a row on the recent items list but do not select it yet
     tree.set_activate_on_single_click(True)

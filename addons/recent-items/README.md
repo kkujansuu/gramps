@@ -1,7 +1,9 @@
 # Recent items
-v0.9.0<br>
-25 Jul 2024<br>
+v0.9.4<br>
+30 Mar 2025<br>
 Author: kari.kujansuu@gmail.com<br>
+
+Update on March, 30, 2025: this should now support Gramps 6.0.
 
 This is an experiment to add recently used items to the various selector dialogs in Gramps. See for example the discussion
 https://gramps.discourse.group/t/add-a-recent-sub-menu/5760.
