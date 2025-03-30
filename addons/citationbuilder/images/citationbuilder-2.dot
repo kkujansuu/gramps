@@ -1,0 +1,8 @@
+digraph G {
+    graph [rankdir=LR];
+    Person [label="Person, Event etc."];
+    Person -> Citation;
+    Citation -> Source;
+    Source -> Repository;
+    Citation -> Note;
+}
