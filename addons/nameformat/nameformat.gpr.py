@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2024      Kari Kujansuu
+# Copyright (C) 2024-2025      Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ register(
     id="nameformat",
     name=_("Name format"),
     description=_("Adds alternative surnames to the primary name"),
-    version="0.9.0",
+    version="0.9.1",
     gramps_target_version=major_version,
     status=STABLE,
     fname="nameformat.py",

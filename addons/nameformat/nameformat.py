@@ -1,7 +1,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2024      Kari Kujansuu
+# Copyright (C) 2024-2025      Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@ The new format name is not stored in the database. The new names are generated i
 #
 # ------------------------------------------------------------------------
 
+from gramps.gen.const import VERSION_TUPLE
 from gramps.gen.lib import Person, Name
 from gramps.gen.display.name import NameDisplay
 from gramps.gui.views.treemodels import PeopleBaseModel, FamilyModel
@@ -82,24 +83,33 @@ def load_on_reg(dbstate, uistate, plugin):
 def new_display(self, person):
     orig_name = NameDisplay.orig_display(self, person)
     return get_new_name(person, orig_name)
+
+if VERSION_TUPLE < (6, 0, 0):
+    def new_column_name(self, data):
+        orig_name = PeopleBaseModel.orig_column_name(self, data)
+        person = Person()
+        person.unserialize(data)
+        return get_new_name(person, orig_name)
+
+    def new_column_father(self, data):
+        return new_column_parent(self, data, data[0], data[2], "FATHER2", FamilyModel.orig_column_father)
     
-def new_column_name(self, data):
-    orig_name = PeopleBaseModel.orig_column_name(self, data)
-    person = Person()
-    person.unserialize(data)
-    return get_new_name(person, orig_name)
+    def new_column_mother(self, data):
+        return new_column_parent(self, data, data[0], data[3], "MOTHER2", FamilyModel.orig_column_mother)
+else:
+    def new_column_name(self, data):
+        orig_name = PeopleBaseModel.orig_column_name(self, data)
+        return get_new_name(data, orig_name)
 
-def new_column_father(self, data):
-    return new_column_parent(self, data, "FATHER2", 2, FamilyModel.orig_column_father)
-
-def new_column_mother(self, data):
-    return new_column_parent(self, data, "MOTHER2", 3, FamilyModel.orig_column_mother)
-
-def new_column_parent(self, data, cache_key, index, orig_func):
-    parent_handle = data[index]
+    def new_column_father(self, data):
+        return new_column_parent(self, data, data.handle, data.father_handle, "FATHER2", FamilyModel.orig_column_mother)
+    
+    def new_column_mother(self, data):
+        return new_column_parent(self, data, data.handle, data.mother_handle, "MOTHER2", FamilyModel.orig_column_mother)
+    
+def new_column_parent(self, data, family_handle, parent_handle, cache_key, orig_func):
     if not parent_handle: return ""
 
-    family_handle = data[0]
     cached, value = self.get_cached_value(family_handle, cache_key)
     if cached: return value
 
@@ -108,7 +118,7 @@ def new_column_parent(self, data, cache_key, index, orig_func):
     new_name = get_new_name(person, orig_name)
     self.set_cached_value(family_handle, cache_key, new_name)
     return new_name
-
+    
 def get_new_name(person, orig_name):
     primary_surname = person.get_primary_name().get_surname()
     names = set()

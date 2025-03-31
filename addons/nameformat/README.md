@@ -1,8 +1,10 @@
 # Name Format
-v0.9<br>
-7 Nov 2024<br>
+v0.9.1<br>
+31 Mar 2025<br>
 Author: kari.kujansuu@gmail.com<br>
 
+
+	This addon should now support both Gramps 5.x and Gramps 6.0.
 
 Often it would be useful that a person's name includes both the birth surname and a married surname. In gramps you can define multiple names for a person but only one of them - the primary name - is used when the person is displayed for example in the person list view or charts etc.
 
