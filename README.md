@@ -65,7 +65,8 @@ https://github.com/kkujansuu/gramps/tree/master/addons/events_and_citations
 
 A new families view that adds two columns: "Marriage Place" and "Number of Children"- 
 
-https://github.com/Taapeli/isotammi-addons/tree/master/source/FamilyView-2
+https://github.com/kkujansuu/gramps/tree/master/addons/FamilyView-2
+
 
 ***
 
