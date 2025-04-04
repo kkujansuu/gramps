@@ -27,6 +27,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/ChildMerge
 
 ***
 
+### CitationBuilder
+
+A quick way to add citations from online sites.
+
+https://github.com/kkujansuu/gramps/tree/master/addons/CitationBuilder
+
+***
+
 ### Do You Know Your Family
 
 A game within Gramps.
@@ -50,6 +58,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/ErrorDetails
 Helps in manipulating citations for a person.
 
 https://github.com/kkujansuu/gramps/tree/master/addons/events_and_citations
+
+***
+
+### FamilyView-2 
+
+A new families view that adds two columns: "Marriage Place" and "Number of Children"- 
+
+https://github.com/Taapeli/isotammi-addons/tree/master/source/FamilyView-2
 
 ***
 

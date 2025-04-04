@@ -3,6 +3,8 @@ v0.9.3<br>
 24 Feb 2025<br>
 Author: kari.kujansuu@gmail.com<br>
 
+    This addon does not yet work in Gramps 6.0.
+   
 ## Introduction
 
 With this tool you can do fast global searches within a family tree. The search applies to 
