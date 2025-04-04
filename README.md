@@ -63,7 +63,7 @@ https://github.com/kkujansuu/gramps/tree/master/addons/events_and_citations
 
 ### FamilyView-2 
 
-A new families view that adds two columns: "Marriage Place" and "Number of Children"- 
+A new Families view that adds two columns: "Marriage Place" and "Number of Children".
 
 https://github.com/kkujansuu/gramps/tree/master/addons/FamilyView-2
 
