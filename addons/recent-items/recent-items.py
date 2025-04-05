@@ -189,6 +189,7 @@ def new_init(self, dbstate, uistate, *args, **kwargs):
     """
     filter = kwargs.get("filter", None)
     skip = kwargs.get("skip", [])
+    print("new init", args, kwargs)
     BaseSelector.orig_init(self, dbstate, uistate, *args, **kwargs)
 
     vbox = self.glade.get_object("select_person_vbox")
@@ -340,28 +341,55 @@ def button_press(self, tree, _tree, event):
 
 # ------------------------------------------------------------------
 
+if VERSION_TUPLE < (6, 0, 0):
+    
+    def new_run(self):
+        """
+        This method will replace the "run()" method in BaseSelector.
+    
+        The code is copied from BaseSelector and the call to update_recent_items is added.
+        ResponseType.OK means that the user has pressed the OK button and accepts an item from the list.
+        That item is added to recent items.
+        """
+        val = self.window.run()
+        result = None
+        if val == Gtk.ResponseType.OK:
+            id_list = self.get_selected_ids()
+            if id_list and id_list[0]:
+                handle = id_list[0]
+                result = self.get_from_handle_func()(handle)
+                update_recent_items(self, self.db.get_dbid(), result)
+            self.close()
+        elif val != Gtk.ResponseType.DELETE_EVENT:
+            self.close()
+        return result
 
-def new_run(self):
-    """
-    This method will replace the "run()" method in BaseSelector.
-
-    The code is copied from BaseSelector and the call to update_recent_items is added.
-    ResponseType.OK means that the user has pressed the OK button and accepts an item from the list.
-    That item is added to recent items.
-    """
-    val = self.window.run()
-    result = None
-    if val == Gtk.ResponseType.OK:
-        id_list = self.get_selected_ids()
-        if id_list and id_list[0]:
-            handle = id_list[0]
-            result = self.get_from_handle_func()(handle)
-            update_recent_items(self, self.db.get_dbid(), result)
-        self.close()
-    elif val != Gtk.ResponseType.DELETE_EVENT:
-        self.close()
-    return result
-
+else: # 6.0 is a bit different
+    
+    def new_run(self):
+        val = self.window.run()
+        result = None
+        if val == Gtk.ResponseType.OK:
+            handle_list = self.get_selected_ids()
+            if handle_list:
+                if self.allow_multiple_selection:
+                    # always return a list, but may be length 0
+                    result = [
+                        self.get_from_handle_func()(handle)
+                        for handle in handle_list
+                        if handle
+                    ]
+                    for res in result:
+                        update_recent_items(self, self.db.get_dbid(), res)
+                else:
+                    # return None or a valid handle
+                    if handle_list[0]:
+                        result = self.get_from_handle_func()(handle_list[0])
+                        update_recent_items(self, self.db.get_dbid(), result)
+            self.close()
+        elif val != Gtk.ResponseType.DELETE_EVENT:
+            self.close()
+        return result
 
 # ------------------------------------------------------------------
 
