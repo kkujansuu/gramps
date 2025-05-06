@@ -24,8 +24,8 @@ The enhancements are
 1. The birth and death years are displayed
 1. Number of matches and elapsed time are displayed
 1. The tool closes if the user switches the database
-1. Can be run from the command line
-1. Soundex not used for non-western names
+1. The tools can be run from the command line
+1. Soundex is not used for non-western names
 1. First names with dashes are considered two separate names (so "Mary-Ann" and "Mary Ann" will match)
 
 
@@ -50,7 +50,7 @@ The user can exclude matches that are known to be false matches (see the next sc
 
 Normally matches must have the same year of birth (if they both have birth dates). However, with **Date tolerance** the user can relax this to allow matches where birth years differ by the given number. This is meant for cases where the birth year is estimated. 
 
-**Process only a random sample of the database** means that the tool only processes a random part of inidividuals in the database. This is intended for cases when there is a large database an running a complete report would take a long time, However, using the CSV feature might also helps in such a case. See next section.
+**Process only a random sample of the database** means that the tool only processes a random part of inidividuals in the database. This is intended for cases when there is a large database and running a complete report would take a long time, However, using the CSV feature might also help in such a case. See next section.
 
 With **Load from CSV file** the user can load the search results from an earlier run where the match list is stored in a CSV file. The tool will then immediately load the earlier match list without doing a new search. Any excluded matches are not loaded.
 
@@ -66,9 +66,9 @@ The matches with the highest ratings are displayed first.
 
 The birth and death years of matching people are displayed. This should help in identifying them.
 
-**Exclude** means that the selected matches are known to be false matches and they are removed from the list. The exclusions also stored permanently in a separate database so they will not be seen in the future unless **Hide excluded matches** is unchecked in the search dialog. There is no way to undo the exclude setting.
+The **Exclude** button: click this if the selected matches are known to be false matches and they are removed from the list. The exclusions also stored permanently in a separate database so they will not be seen in the future unless **Hide excluded matches** is unchecked in the search dialog. There is no way to undo the exclude setting.
 
-**Save list as CSV** saves the current match list in a CSV file. The user must specify the name and location of the CSV file. The excluded matchs are not saved. The user can then later, in a future run, reload the list from the CSV. This is meant for cases where the match list generation takes a long time and the user will perform the merges across several sessions.
+**Save list as CSV** saves the current match list in a CSV file. The user must specify the name and location of the CSV file. The excluded matches are not saved. The user can then later, in a future run, reload the list from the CSV. This is meant for cases where the match list generation takes a long time and the user will perform the merges across several sessions.
 
 The **Merge** button will immediately merge the selected matches. The first person (on the left) will always be selected as the primary person.
 
