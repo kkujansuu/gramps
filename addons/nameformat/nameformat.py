@@ -102,7 +102,7 @@ else:
         return get_new_name(data, orig_name)
 
     def new_column_father(self, data):
-        return new_column_parent(self, data, data.handle, data.father_handle, "FATHER2", FamilyModel.orig_column_mother)
+        return new_column_parent(self, data, data.handle, data.father_handle, "FATHER2", FamilyModel.orig_column_father)
     
     def new_column_mother(self, data):
         return new_column_parent(self, data, data.handle, data.mother_handle, "MOTHER2", FamilyModel.orig_column_mother)
