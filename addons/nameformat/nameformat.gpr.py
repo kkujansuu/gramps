@@ -29,7 +29,7 @@ register(
     id="nameformat",
     name=_("Name format"),
     description=_("Adds alternative surnames to the primary name"),
-    version="0.9.1",
+    version="0.9.2",
     gramps_target_version=major_version,
     status=STABLE,
     fname="nameformat.py",
