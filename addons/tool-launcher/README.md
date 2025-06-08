@@ -20,3 +20,8 @@ Of course, the gramplet can also be detached from the sidebar (as all gramplets)
 
 ![Image](images/tool-launcher-3.png)
 
+Similar gramplet to invoke **reports** is here: 
+https://github.com/kkujansuu/gramps/tree/master/addons/report-launcher
+
+
+

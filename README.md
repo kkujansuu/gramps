@@ -144,6 +144,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/reload_plugins
 
 ***
 
+### Report launcher
+
+Run frequently used reports with one click.
+
+https://github.com/kkujansuu/gramps/tree/master/addons/report-launcher
+
+***
+
 ### Simple Sidebar
 
 Creates a new (left) sidebar for Gramps. 
