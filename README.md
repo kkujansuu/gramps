@@ -88,6 +88,13 @@ https://github.com/kkujansuu/gramps/tree/master/addons/filterprogress
 
 ***
 
+### Find Duplicates 2
+
+Enhanced version of the Find Duplicates tool (Find Possible Duplicate People).
+
+https://github.com/kkujansuu/gramps/tree/master/addons/findduplicates2
+
+***
 
 ### Fulltext search
 
