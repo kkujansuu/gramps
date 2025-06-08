@@ -37,6 +37,7 @@ from gramps.gui.dialog import OkDialog
 from gramps.gui.plug import tool
 from gramps.gui.pluginmanager import GuiPluginManager
 from gramps.gui.user import User
+from gramps.gui.viewmanager import run_plugin
 
 from gramps.version import major_version
 
@@ -189,15 +190,5 @@ class Launcher(Gramplet):
         self.populate_pluginsframe()
 
     def run_tool(self, widget, event):
-        pdata = widget.pdata
-        pmgr = GuiPluginManager.get_instance()
-        mod = pmgr.load_plugin(pdata)
-        #importlib.reload(mod)
-        tool.gui_tool(dbstate=self.dbstate, user=User(uistate=self.uistate),
-                      tool_class=getattr(mod, pdata.toolclass),
-                      options_class=getattr(mod, pdata.optionclass),
-                      translated_name=pdata.name,
-                      name=pdata.id,
-                      category=pdata.category,
-                      callback=self.dbstate.db.request_rebuild)
+        run_plugin(widget.pdata, self.dbstate, self.uistate)
 
