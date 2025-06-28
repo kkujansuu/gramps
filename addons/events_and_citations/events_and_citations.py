@@ -528,9 +528,8 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         if hi2 == (0,0,0): hi2 = low2
         newlow = min(low1, low2)
         newhi = max(hi1, hi2)
-#        newdate = Date()
-#        newdate.set(modifier=Date.MOD_SPAN, value=[newlow[2], newlow[1], newlow[0], False, newhi[2], newhi[1], newhi[0], False])
-        newdate = Date(modifier=Date.MOD_SPAN, value=[newlow[2], newlow[1], newlow[0], False, newhi[2], newhi[1], newhi[0], False])
+        newdate = Date()
+        newdate.set(modifier=Date.MOD_SPAN, value=[newlow[2], newlow[1], newlow[0], False, newhi[2], newhi[1], newhi[0], False])
         return newdate
     
 class Person_Events_and_Citations(Events_and_Citations):
