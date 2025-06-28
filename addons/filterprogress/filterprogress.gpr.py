@@ -29,6 +29,7 @@
 #
 # ------------------------------------------------------------------------
 
+from gramps.version import VERSION_TUPLE
 from gramps.gen.filters._genericfilter import GenericFilter
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 _ = glocale.translation.gettext
@@ -81,7 +82,6 @@ def new_check_and(self, db, id_list, user=None, tupleind=None, tree=False):
                 person.unserialize(data)
                 if user:
                     if progress.step():
-                        #print("breaking1")
                         break
                 val = all(rule.apply(db, person) for rule in flist)
                 if val != self.invert:
@@ -95,7 +95,6 @@ def new_check_and(self, db, id_list, user=None, tupleind=None, tree=False):
             person = self.find_from_handle(db, handle)
             if user:
                 if progress.step():
-                    #print("breaking2")
                     break
             val = all(rule.apply(db, person) for rule in flist if person)
             if val != self.invert:
@@ -169,5 +168,108 @@ GenericFilter.check_and = new_check_and
 #        return final_list
 #        
 
+# ============= 6.0 =====================
 
 
+def new_apply_logical_op_to_all(
+    self,
+    db,
+    possible_handles,  # Set[PrimaryObjectHandle]
+    apply_logical_op,
+    user=None,
+):
+    import logging
+    from gramps.gen.filters.optimizer import Optimizer
+    from gramps.gui.utils import ProgressMeter
+
+    LOG = logging.getLogger(".filter.results")
+    LOG.debug(
+        "Starting possible_handles: %s",
+        len(possible_handles),
+    )
+
+    # use the Optimizer to refine the set of possible_handles
+    optimizer = Optimizer()
+    handles_in, handles_out = optimizer.compute_potential_handles_for_filter(self)
+
+    # LOG.debug(
+    #    "Optimizer possible_handles: %s",
+    #    len(possible_handles),
+    # )
+    print("new_apply_logical_op_to_all, user:", user)
+    if user:
+        progress = ProgressMeter(_("Filter"), can_cancel=True)
+        progress.set_pass(header=_("Applying ..."), total=self.get_number(db))
+
+    # test each value in possible_handles to compute the final_list
+    final_list = []
+    for handle in possible_handles:
+        if handles_in is not None and handle not in handles_in:
+            continue
+        if handles_out is not None and handle in handles_out:
+            continue
+
+        if user:
+            if progress.step():
+                break
+
+        obj = self.get_object(db, handle)
+
+        if apply_logical_op(db, obj, self.flist) != self.invert:
+            final_list.append(obj.handle)
+
+    if user:
+        progress.close()
+
+    return final_list
+
+if VERSION_TUPLE >= (6, 0, 2):
+    GenericFilter.apply_logical_op_to_all = new_apply_logical_op_to_all
+
+        
+# Original:
+# 
+#     def apply_logical_op_to_all(
+#         self,
+#         db,
+#         possible_handles: Set[PrimaryObjectHandle],
+#         apply_logical_op,
+#         user=None,
+#     ):
+#         LOG.debug(
+#             "Starting possible_handles: %s",
+#             len(possible_handles),
+#         )
+# 
+#         # use the Optimizer to refine the set of possible_handles
+#         optimizer = Optimizer()
+#         handles_in, handles_out = optimizer.compute_potential_handles_for_filter(self)
+# 
+#         # LOG.debug(
+#         #    "Optimizer possible_handles: %s",
+#         #    len(possible_handles),
+#         # )
+# 
+#         # if user:
+#         #    user.begin_progress(_("Filter"), _("Applying ..."), len(possible_handles))
+# 
+#         # test each value in possible_handles to compute the final_list
+#         final_list = []
+#         for handle in possible_handles:
+#             if handles_in is not None and handle not in handles_in:
+#                 continue
+#             if handles_out is not None and handle in handles_out:
+#                 continue
+# 
+#             if user:
+#                 user.step_progress()
+# 
+#             obj = self.get_object(db, handle)
+# 
+#             if apply_logical_op(db, obj, self.flist) != self.invert:
+#                 final_list.append(obj.handle)
+# 
+#         if user:
+#             user.end_progress()
+# 
+#         return final_list
