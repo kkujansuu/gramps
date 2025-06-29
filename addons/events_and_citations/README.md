@@ -1,9 +1,9 @@
 # Events and Citations
 
 Author: kari.kujansuu@gmail.com<br>
-2025
+28 June 2025
 
-This is a gramplet designed to replace the Events gramplet in the bottom bar for the person view. 
+This is a gramplet designed to replace the Events gramplet (https://gramps-project.org/wiki/index.php?title=Gramps_6.0_Wiki_Manual_-_Gramplets%23Gramplet_List#Events) in the bottom bar for the person view. 
 
 It will show citations attached to the events - and also citations attached directly to the person object.
 The intent is to make manipulating citations easier.
@@ -25,6 +25,8 @@ There are these additional functionalities within the gramplet:
 4. You can merge events.
 
 5. You can drag citations to or from the clipboard.
+
+6. You can copy an event to other family members
 
 
 ### 1. Deleting an event or a citation
@@ -78,4 +80,32 @@ The date spans of the events are combined. For example, if the first event is a 
 
 ### 5. Dragging citations to or from the clipboard
 
-You can also drag citations between the Gramps clipboard and the gramplet.
+You can also drag citations between the Gramps clipboard and the gramplet. Events cannot be dragged.
+
+### 6. Copying an event to other family members
+
+Right clicking an event will show the option "Copy event to family members":
+
+![events_and_citations](images/events-and-citations-event-popup.png)
+
+Selecting the option will display a dialog with family members of the current person (parents, siblings, spouses and children). You can select to which members to current event is copied to. This is intended mainly for Residence or Census events which apply to several individuals.
+
+![events_and_citations](images/events-and-citations-event-copy.png)
+
+    Note: there are no Residence events in the sample database. 
+    Therefore the above example uses a burial event which doesn't make so much sense.
+
+By default, this will create a new copy of the event for each new participant. The new events will have the same citations and notes etc. as the original.
+
+The event role can be selected - the default is the same as with the original event.
+
+Checking the "Share event" checkbox will use the original event and only add references to the event.
+
+The program checks if the family members already have an event with the same content. In that case the corresponding checkbox is automatically deselected. This check uses the built-in method Event.are_equal which compares most of the attributes of the events:
+
+![events_and_citations](images/events-and-citations-event-copy2.png)
+
+
+#### 6.1 Special case with Residence events
+
+If the copied event is a Residence event and the data is a compound date (span) then the date span for each new event is modified so that it doesn't exceed the life span of the person.

@@ -33,6 +33,7 @@
 # Python modules
 #
 #-------------------------------------------------------------------------
+import html
 import pickle
 from pprint import pprint
 
@@ -55,26 +56,36 @@ from gramps.gen.plug import Gramplet
 from gramps.gen.plug.report.utils import find_spouse
 from gramps.gui.dbguielement import DbGUIElement
 from gui.display import display_url
+from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.display.place import displayer as place_displayer
 from gramps.gen.datehandler import get_date
 from gramps.gen.utils.db import (get_participant_from_event,
-                                 get_birth_or_fallback,
-                                 get_marriage_or_fallback)
+                                 get_birth_or_fallback)
 from gramps.gen.db import DbTxn
 from gramps.gen.errors import WindowActiveError, HandleError
 from gramps.gen.config import config
 from gramps.gen.const import GRAMPS_LOCALE as glocale
-from gramps.gui.dialog import OkDialog, QuestionDialog, QuestionDialog2
+from gramps.gui.dialog import QuestionDialog2
 from gramps.gen.merge.mergeeventquery import MergeEventQuery
-from gramps.gen.lib.date import Date
+
+from gramps.gen.lib import Date
+from gramps.gen.lib import Event
+from gramps.gen.lib import EventRef
+from gramps.gen.lib import EventRoleType
+from gramps.gen.lib import EventType
+from gramps.gen.lib import Person, Family
+
+from gramps.gui.selectors.selectorfactory import SelectorFactory
+from gramps.gui.editors.editeventref import EditEventRef
+from gramps.gui.ddtargets import DdTargets
+from gramps.gui.widgets import MonitoredDataType
+
 _ = glocale.translation.gettext
 
-from gramps.gui.editors.displaytabs import CitationEmbedList
-from gramps.gui.ddtargets import DdTargets
 
 age_precision = config.get('preferences.age-display-precision')
 
-class Events_and_Citations(Gramplet, DbGUIElement):
+class Events_and_Citations2(Gramplet, DbGUIElement):
 
 
     
@@ -83,8 +94,8 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         Gramplet.__init__(self, gui, nav_group)
         DbGUIElement.__init__(self, self.dbstate.db)
         self.popup_menu_items = [
-            (True, "Open link", self.open_link),
-            (True, "Delete", self.delete_citation),
+            [True, "Open link", self.open_link],
+            [True, "Remove", self.delete_event_or_citation],
         ]
         self.main()
 
@@ -138,12 +149,24 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         menu.set_reserve_toggle_size(False)
 
         (model, treeiter) = self.model.tree.get_selection().get_selected()
-        if treeiter:
-            row = model[treeiter]
-            url = row[-2]
-            # print(url)
-            index = 0 if url else 1        
-        for (need_write, title, func) in self.popup_menu_items[index:]:
+        if not treeiter:
+            return False
+
+        row = model[treeiter]
+        url = row[-2]
+        # print(url)
+        index = 0 if url else 1        
+
+        menuitems = self.popup_menu_items[index:]
+
+        parent_iter = model.iter_parent(treeiter)
+        if not parent_iter: # event or person
+            event_handle = row[1]
+            if self.dbstate.db.has_event_handle(event_handle): # event
+                menuitems.append([True, "Copy event to family members...", self.copy_event])
+                
+        
+        for (need_write, title, func) in menuitems:
             item = Gtk.MenuItem.new_with_mnemonic(title)
             item.connect('activate', func)
             if need_write and self.dbstate.db.readonly:
@@ -153,7 +176,18 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         menu.popup(None, None, None, None, event.button, event.time)
         return True
 
-    def delete_citation(self, menuitem):
+    def copy_event(self, menuitem):
+        (model, treeiter) = self.model.tree.get_selection().get_selected()
+        if treeiter:
+            event_handle = model[treeiter][1]
+            event = self.dbstate.db.get_event_from_handle(event_handle)
+           
+            active_handle = self.get_active('Person')
+            active_person = self.dbstate.db.get_person_from_handle(active_handle)
+            rolename = model[treeiter][7]
+            self.copy_event_dialog(active_person, event, rolename)
+        
+    def delete_event_or_citation(self, menuitem):
         (model, treeiter) = self.model.tree.get_selection().get_selected()
         if treeiter:
             citation_handle = model[treeiter][1]
@@ -171,8 +205,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                 else:
                     return
                 citation = self.dbstate.db.get_citation_from_handle(citation_handle)
-                # print(parent)
-                # print(citation)
                 with DbTxn("Removing citation", self.dbstate.db) as trans:
                     parent.remove_citation_references([citation_handle])
                     commitfunc(parent, trans)
@@ -211,7 +243,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                   ('', NOSORT, 50,),        # row type (person, event, citation)
                   ('', NOSORT, 50,),        # handle
                   (_('Type'), 2, 100),      # event type
-#                  (_('Link'), NOSORT, 20),       # has url
                   (_('Description'), 3, 400),   # event description or citation title+page
                   (_('Date'), 5, 100),      # event data
                   ('', NOSORT, 50),
@@ -225,7 +256,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                                list_mode="tree")
         self.set_draggable_source(top)
         self.set_draggable_dest(top)
-        #top.connect("click", lambda *args: print("clicked",args))
         return top
 
     def add_event_ref(self, event_ref, node=None):
@@ -244,8 +274,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
             participants = get_participant_from_event(self.dbstate.db,
                                                       event_ref.ref)
 
-            #num_citations = len(event.get_citation_list())
-            
             node = self.model.add([
                             "event",
                             event.get_handle(),
@@ -280,12 +308,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                 note_handle = citation.note_list[0]
                 note = self.dbstate.db.get_note_from_handle(note_handle)
                 text = note.get()
-#            if text.startswith("Kansallisarkisto: "):
-#                text = text.split()[1]
-#            if text.startswith("SSHY: "):
-#                text = text.split()[1]
-#            if text.startswith("Kansalliskirjasto: "):
-#                text = text.split()[1]
             if text.startswith("http"):
                 url = text
                 if url: url = url.split()[0]
@@ -297,7 +319,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
             else:
                 url = ""
             has_link = "\U0001F517" if url else " "
-            #print("citation --------->",[citation_handle,"",citation_text] + [""]*4)
             if citation.date.is_empty():
                 citation_date = ""
             else:
@@ -380,8 +401,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         dnd_types = [DdTargets.CITATION_LINK.target()]
         mask = Gdk.ModifierType.BUTTON1_MASK | Gdk.ModifierType.CONTROL_MASK
         widget.enable_model_drag_source(mask, dnd_types, Gdk.DragAction.COPY)
-        #widget.drag_source_set_target_list(None)
-        #widget.drag_source_add_text_targets()
         widget.connect("drag-data-get", self.drag_data_get)
 
     def set_draggable_dest(self, widget):
@@ -389,18 +408,12 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         dnd_types = [DdTargets.CITATION_LINK.target()]
 
         widget.enable_model_drag_dest(dnd_types, Gdk.DragAction.COPY)
-        #widget.enable_model_drag_dest(DdTargets._all_gramps_types, Gdk.DragAction.COPY)
-        #widget.enable_model_drag_dest([], Gdk.DragAction.COPY)
-
-        #widget.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
-        #widget.drag_dest_set_target_list(None)
         widget.drag_dest_add_text_targets()
 
                 
         widget.connect("drag-data-received", self.drag_data_received)
 
     def drag_data_get(self, widget, drag_context, sel_data, info, time):
-        # print("drag_data_get", sel_data)
         selection = widget.get_selection()
         model, treeiter = selection.get_selected()
         if treeiter is not None:
@@ -461,6 +474,10 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                 event_handle2 = row[1]
                 if event_handle == event_handle2:
                     return # should not merge to itself
+                if not self.dbstate.db.has_event_handle(event_handle):
+                    return
+                if not self.dbstate.db.has_event_handle(event_handle2):
+                    return
                 event1 = self.dbstate.db.get_event_from_handle(event_handle)
                 event2 = self.dbstate.db.get_event_from_handle(event_handle2)
                 ok_to_merge = QuestionDialog2("Merge events",
@@ -482,7 +499,6 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                 "",
                 self.get_citation_text(citation)] + [""]*5  # miksi tässä pitää olla 9 alkiota?
 
-            #print(" new_row", new_row, len(new_row))
             x = dest_path.get_indices()
             if len(x) > 1:
                 parent_index = int(x[0])
@@ -531,14 +547,306 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         newdate = Date()
         newdate.set(modifier=Date.MOD_SPAN, value=[newlow[2], newlow[1], newlow[0], False, newhi[2], newhi[1], newhi[0], False])
         return newdate
+
+# Rest of the methods in this class are for "Copy event to family members"
+
+
+    def copy_event_dialog(self, obj, event, rolename):
+        # type: (Union[Person,Family]) -> None
+
+        """
+        Displays a dialog allowing the user to select which family members the event is copied to.
+        """        
+        dialog = Gtk.Dialog(modal=False)
+
+        dialog.set_size_request(600, 300)
+        dialog.set_title(_("Copy event to family members"))
+        c = dialog.get_content_area()
+        c.set_spacing(8)
+
+        lbl1 = Gtk.Label()
+        lbl1.set_markup("<b>" + _("Selected event:") + "</b>")
+        lbl1.set_halign(Gtk.Align.START)
+
+        lbl2 = Gtk.Label()
+        lbl2.set_markup("<b>" + _("Add a copy of the selected event to:") + "</b>")
+        lbl2.set_halign(Gtk.Align.START)
+
+        
+        self.role_label = Gtk.Label(_("Role:"))
+        self.role_label.set_halign(Gtk.Align.START)
+        self.rolecombo = Gtk.ComboBoxText.new_with_entry()
+
+        self.eventref = EventRef()
+        self.eventref.set_role(rolename)
+
+        self.role_selector = MonitoredDataType(
+            self.rolecombo,
+            self.eventref.set_role,
+            self.eventref.get_role,
+            self.db.readonly,
+            self.db.get_event_roles(),
+        )
+        
+
+        self.checkbox_share = Gtk.CheckButton(_("Share event"))
+
+        self.event_frame = Gtk.Frame()
+        self.eventgrid = Gtk.Grid()
+        self.eventgrid.rownum = 0
+        self.event_frame.add(self.eventgrid)
+        self.add_event_to_dialog(self.eventgrid, event)
+
+        rolebox = Gtk.HBox()
+        rolebox.pack_start(self.role_label, False, False, 0)
+        rolebox.pack_start(self.rolecombo, False, False, 10)
+
+        self.grid = Gtk.Grid()
+        self.grid.rownum = 0
+
+        c.pack_start(lbl1, False, False, 0)
+        c.pack_start(self.event_frame, False, False, 0)
+        c.pack_start(rolebox, False, False, 0)
+        c.pack_start(self.checkbox_share, False, False, 0)
+        c.pack_start(lbl2, False, False, 0)
+        c.pack_start(self.grid, False, False, 0)
+
+        c.set_size_request(300, -1)
+
+        self.checkboxes = []  # type: List[Tuple[str, Gtk.CheckButton]]
+
+        if isinstance(obj, Family):
+            self.add_checkbutton("Father", obj.get_father_handle())
+            self.add_checkbutton("Mother", obj.get_mother_handle())
+            for childref in obj.get_child_ref_list():
+                self.add_checkbutton("Child", childref.ref)
+
+        if isinstance(obj, Person):
+
+            # Parents:
+            for parent_family_handle in obj.get_parent_family_handle_list():
+                family = self.db.get_family_from_handle(parent_family_handle)
+                self.add_checkbutton("Father", family.father_handle)
+                self.add_checkbutton("Mother", family.mother_handle)
+
+            # Siblings:
+            for parent_family_handle in obj.get_parent_family_handle_list():
+                family = self.db.get_family_from_handle(parent_family_handle)
+                self.add_spacer()
+                for cref in family.get_child_ref_list():
+                    if cref.ref == obj.handle: continue
+                    child = self.db.get_person_from_handle(cref.ref)
+                    self.add_checkbutton("Sibling", child.handle)
+
+            # Spouses and children:
+            for parent_family_handle in obj.get_family_handle_list():
+                family = self.db.get_family_from_handle(parent_family_handle)
+                spouse_handle = family.mother_handle if family.father_handle == obj.handle else family.father_handle
+                self.add_spacer()
+                if spouse_handle:
+                    self.add_checkbutton("Spouse", spouse_handle)
+                for childref in family.get_child_ref_list():
+                    self.add_checkbutton("Child", childref.ref)
+
+        self.add_spacer()
+        check_all = self.make_checkbutton("check/clear all", "", "", True)
+        self.grid.attach(check_all, 0, self.grid.rownum, 1, 1)
+        self.grid.rownum += 1
+        check_all.connect("clicked", self.check_all_changed)
+
+        self.ok_button = dialog.add_button(_("OK"), 1)
+        self.cancel_button = dialog.add_button(_("Cancel"), 0)
+        dialog.show_all()
+        dialog.connect("response", self.handle_response)
+
+    def handle_response(self, dialog, rspcode):
+        # type: (Gtk.Dialog, int) -> None
+        if rspcode == 1:
+            self.add_events()
+        dialog.destroy()
+
+    def add_events(self, _widget=None):
+        affected_handles = [handle for (handle,checkbox) in self.checkboxes if checkbox.get_active()]
+        # print("affected_handles",affected_handles)
+        role = self.eventref.role
+        if len(affected_handles) > 0:
+            self.add_events2(self.selected_obj, affected_handles, role, self.checkbox_share.get_active())
+        
+    def add_events2(self, selected_obj, affected_handles, role, share):
+        # type: () -> None
+        with DbTxn(_("Adding events"), self.db) as self.trans:
+            for person_handle in affected_handles:
+                self.add_object_for_person(person_handle, selected_obj, role, share)
+
+
+    def add_object_for_person(self, person_handle, selected_obj, role, share):
+        # type: (str, Event) -> None
+        person = self.db.get_person_from_handle(person_handle)
+        if share:
+            event = selected_obj
+        else:
+            event = Event(selected_obj)
+            event.handle = None
+            event.gramps_id = None
+            if event.type == EventType.RESIDENCE and event.date.is_compound():
+                birth_date = self.get_birth_date(person)
+                death_date = self.get_death_date(person)
+                if birth_date and event.date < birth_date:
+                    event.date.set_yr_mon_day(*birth_date.get_ymd(),remove_stop_date=False)
+                if death_date and event.date > death_date:
+                    event.date.set2_yr_mon_day(*death_date.get_ymd())
+                
+                
+            self.db.add_event(event, self.trans)
+
+        eref = EventRef()
+        eref.ref = event.handle
+        eref.role = role
+        person.add_event_ref(eref)
+        self.db.commit_person(person, self.trans)
+
+
+    def get_birth_date(self, person):
+        birth_ref = person.get_birth_ref()
+        if not birth_ref: return None
+        birth_event = self.db.get_event_from_handle(birth_ref.ref)
+        if not birth_event: return None
+        return birth_event.get_date_object()
     
-class Person_Events_and_Citations(Events_and_Citations):
+    def get_death_date(self, person):
+        death_ref = person.get_death_ref()
+        if not death_ref: return None
+        death_event = self.db.get_event_from_handle(death_ref.ref)
+        if not death_event: return None
+        return death_event.get_date_object()
+    
+
+    def add_event_to_dialog(self, grid, event):
+        # type: (EventRef, Event) -> None
+        participants = ", ".join(self.get_participants(event.handle))
+        self.add_row(grid, "ID", event.gramps_id)
+        self.add_row(grid, "Type", event.type)
+        self.add_row(grid, "Description", event.description)
+        self.add_row(grid, "Date", event.date)
+        self.add_row(grid, "Place", place_displayer.display_event(self.db, event))
+        self.add_row(grid, "Participants", participants)
+
+        grid.set_column_spacing(5)
+
+        self.selected_obj = event
+
+        self.default_event_type = event.type.xml_str() 
+        dbid = self.db.get_dbid()
+        
+        if event.place:
+            self.default_place_handle = event.place
+            place = self.db.get_place_from_handle(event.place)
+
+    def get_participants(self, handle):
+        # type: (str) -> List[str]
+        namelist = []
+        for class_name, referrer_handle in self.db.find_backlink_handles(
+            handle, ["Person", "Family"]
+        ):
+            # role = self.get_role_of_eventref(self.db, referrer_handle, self.handle)
+            if class_name == "Family":
+                family = self.db.get_family_from_handle(referrer_handle)
+                if family.father_handle:
+                    person = self.db.get_person_from_handle(family.father_handle)
+                    name = name_displayer.display(person)
+                    namelist.append(name)
+                if family.mother_handle:
+                    person = self.db.get_person_from_handle(family.mother_handle)
+                    name = name_displayer.display(person)
+                    namelist.append(name)
+            if class_name == "Person":
+                person = self.db.get_person_from_handle(referrer_handle)
+                name = name_displayer.display(person)
+                namelist.append(name)
+        return namelist
+
+    def add_row(self, grid, *cols):
+        # type: (Gtk.Grid, str) -> None
+        for colnum, col in enumerate(cols):
+            value = str(col)
+            if colnum == 0:
+                value = _(value)
+            lbl = Gtk.Label(value)
+            lbl.set_halign(Gtk.Align.START)
+            lbl.set_line_wrap(True)
+            grid.attach(lbl, colnum, grid.rownum, 1, 1)
+        grid.rownum += 1
+
+
+    def check_all_changed(self, *args):
+        # type: (Gtk.CheckButton) -> None
+        active = args[0].get_active()
+        for _, check in self.checkboxes:
+            check.set_active(active)
+
+    def add_checkbutton(self, title, handle):
+        # type: (str, str) -> None
+        if handle is None:
+            return
+        name = self.get_name(handle)
+        has_event = self.check_existing_event(handle)
+        if has_event:
+            info = _(" (event already exists)")
+        else:
+            info = ""
+        check = self.make_checkbutton(title, name, info, not has_event)
+        self.checkboxes.append((handle, check))
+        self.grid.attach(check, 0, self.grid.rownum, 1, 1)
+        self.grid.rownum += 1
+
+    def add_spacer(self):
+        # type: () -> None
+        self.grid.attach(Gtk.Label(""), 0, self.grid.rownum, 1, 1)
+        self.grid.rownum += 1
+
+
+    def make_checkbutton(self, title, name, info, active):
+        # type: (str, str) -> Gtk.CheckButton
+        lbl = Gtk.Label()
+        title = _(title)
+        name = html.escape(name)
+        lbl.set_markup(f"{title} <b>{name}</b>{info}")
+        check = Gtk.CheckButton()
+        check.add(lbl)
+        check.set_margin_top(5)
+        check.set_active(active)
+        return check
+
+    def get_name(self, person_handle):
+        # type: (str) -> str
+        if person_handle:
+            person = self.db.get_person_from_handle(person_handle)
+            return name_displayer.display(person)
+        else:
+            return ""
+    
+    def check_existing_event(self, person_handle):
+        person = self.db.get_person_from_handle(person_handle)
+        for eventref in person.get_event_ref_list():
+            event = self.db.get_event_from_handle(eventref.ref)
+            if self.selected_obj.are_equal(event):
+                return True
+        return False
+            
+    def event_matches(self, event, current_event):
+        if event.get_type() != current_event.get_type(): 
+            return False
+        if event.get_date_object() != current_event.get_date_object(): 
+            return False
+        return True
+    
+class Person_Events_and_Citations2(Events_and_Citations2):
     """
     Displays the events for a person.
     """
     def db_changed(self):
         self.connect(self.dbstate.db, 'person-update', self.update)
-        #self.connect(self.dbstate.db, 'person-update', self.main)
+        self.db = self.dbstate.db
 
     def active_changed(self, handle):
         self.update()
@@ -584,7 +892,6 @@ class Person_Events_and_Citations(Events_and_Citations):
                             "person",
                             active_handle,    # handle
                             _("Person"),             # "type"
-#                            "",                      # has link
                             _(""),                   # description
                             "",                      # date
                             "",                      # date sort
@@ -600,24 +907,10 @@ class Person_Events_and_Citations(Events_and_Citations):
                 self.add_event_ref(event_ref)
             for family_handle in active_person.get_family_handle_list():
                 family = self.dbstate.db.get_family_from_handle(family_handle)
-                #self.display_family(family, active_person) # ei oteta perhetapahtumia vielä mukaan
         else:
             self.cached_start_date = None
         self.set_has_data(self.model.count > 0)
         self.model.tree.expand_all()
-
-    def display_family(self, family, active_person):
-        """
-        Display the events for the given family.
-        """
-        spouse_handle = find_spouse(active_person, family)
-        if spouse_handle:
-            spouse = self.dbstate.db.get_person_from_handle(spouse_handle)
-        else:
-            spouse = None
-        if family:
-            for event_ref in family.get_event_ref_list():
-                self.add_event_ref(event_ref, spouse)
 
     def get_start_date(self):
         """
