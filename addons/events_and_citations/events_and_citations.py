@@ -85,7 +85,7 @@ _ = glocale.translation.gettext
 
 age_precision = config.get('preferences.age-display-precision')
 
-class Events_and_Citations2(Gramplet, DbGUIElement):
+class Events_and_Citations(Gramplet, DbGUIElement):
 
 
     
@@ -840,7 +840,7 @@ class Events_and_Citations2(Gramplet, DbGUIElement):
             return False
         return True
     
-class Person_Events_and_Citations2(Events_and_Citations2):
+class Person_Events_and_Citations(Events_and_Citations):
     """
     Displays the events for a person.
     """
