@@ -20,6 +20,8 @@
 
 # This program uses the Whoosh library by Matt Chaput, see https://whoosh.readthedocs.io/en/latest/
 
+dbtrace_version = 1
+
 import html
 import os
 import re
@@ -103,6 +105,11 @@ class Tool(tool.Tool):
 
     def __init__(self, dbstate, user, options_class, name, callback=None):
         # type: (Any, Any, Any, str, Callable) -> None
+        try:
+            import dbtrace
+        except:
+            ErrorDialog(_("Error"), _("The Fulltext tool requires the dbtrace addon"))
+            return
         self.user = user
         self.uistate = user.uistate
         self.dbstate = dbstate

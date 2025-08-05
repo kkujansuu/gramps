@@ -38,6 +38,11 @@ from gramps.gen.lib import Place
 from gramps.gen.lib import Repository
 from gramps.gen.lib import Source
 
+try:
+    from gramps.gen.lib import json_utils   # only in 6.0+
+except:
+    pass
+
 from gramps.gui.editors import EditCitation
 from gramps.gui.editors import EditEvent
 from gramps.gui.editors import EditFamily
@@ -63,6 +68,9 @@ class ProxyBase:
         pickled = bytes.fromhex(hexdata)
         data = pickle.loads(pickled)
         self.obj.unserialize(data)
+
+    def from_jsonstring(self, jsonstring):
+        self.obj = json_utils.string_to_object(jsonstring)
 
     def content_for_display(self, db, contenttype, seq):
         (ctype, content) = list(self.content())[seq]
