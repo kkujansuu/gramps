@@ -36,6 +36,9 @@ Usage:
 ```python
 import dbtrace
 
+def callback(sqlstring):
+    # do whatever with sqlstring
+    
 with dbtrace.tracing(db, callback):
     # do any operations
     ...

@@ -36,6 +36,14 @@ https://github.com/kkujansuu/gramps/tree/master/addons/CitationBuilder
 
 ***
 
+### DBTracer
+
+Display or capture database operations in realtime.
+
+https://github.com/kkujansuu/gramps/tree/master/addons/dbtrace
+
+***
+
 ### Do You Know Your Family
 
 A game within Gramps.
