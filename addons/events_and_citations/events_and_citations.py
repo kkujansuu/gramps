@@ -35,6 +35,9 @@
 #-------------------------------------------------------------------------
 import html
 import pickle
+import time
+
+from collections import defaultdict
 from pprint import pprint
 
 #-------------------------------------------------------------------------
@@ -82,6 +85,7 @@ from gramps.gui.widgets import MonitoredDataType
 
 _ = glocale.translation.gettext
 
+collapsed_events = {}
 
 age_precision = config.get('preferences.age-display-precision')
 
@@ -106,6 +110,9 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         self.gui.WIDGET = self.build_gui()
         self.gui.get_container_widget().remove(self.gui.textview)
         self.gui.get_container_widget().add(self.gui.WIDGET)
+        self.last_expand_collapse = 0
+        self.model.tree.connect("row-expanded", self.row_expanded)
+        self.model.tree.connect("row-collapsed", self.row_collapsed)
         self.gui.WIDGET.show()
 
 
@@ -378,6 +385,8 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         """
         Edit the selected event.
         """
+        if self.last_expand_collapse > time.time() - 0.5:
+            return
         model, iter_ = treeview.get_selection().get_selected()
         if iter_:
             handle = model.get_value(iter_, 1)
@@ -910,7 +919,36 @@ class Person_Events_and_Citations(Events_and_Citations):
         else:
             self.cached_start_date = None
         self.set_has_data(self.model.count > 0)
-        self.model.tree.expand_all()
+        
+        # At this point all rows are collapsed.
+        # The following code expands rows that have not been collapsed earlier by the user 
+        dbid = self.db.get_dbid()
+        collapsed_handles = collapsed_events.get(dbid, {}).get(active_handle, set())
+        for i,x in enumerate(self.model.model):
+            row = list(x)
+            handle = row[1]
+            path = Gtk.TreePath.new_from_indices([i])
+            if handle not in collapsed_handles:
+                self.model.tree.expand_row(path, False)
+         
+    def row_expanded(self, tree, iter, path):
+        self.last_expand_collapse = time.time() 
+        handle = tree.get_model().get_value(iter, 1)
+        dbid = self.db.get_dbid()
+        if dbid not in collapsed_events:
+            return
+        active_handle = self.get_active('Person')
+        collapsed_handles = collapsed_events[dbid][active_handle]
+        if handle in collapsed_handles: collapsed_handles.remove(handle)
+
+    def row_collapsed(self, tree, iter, path):
+        self.last_expand_collapse = time.time() 
+        handle = tree.get_model().get_value(iter, 1)
+        dbid = self.db.get_dbid()
+        if dbid not in collapsed_events:
+            collapsed_events[dbid] = defaultdict(set)
+        active_handle = self.get_active('Person')
+        collapsed_events[dbid][active_handle].add(handle)
 
     def get_start_date(self):
         """
