@@ -199,19 +199,23 @@ def new_apply_logical_op_to_all(
     print("new_apply_logical_op_to_all, user:", user)
     if user:
         progress = ProgressMeter(_("Filter"), can_cancel=True)
-        progress.set_pass(header=_("Applying ..."), total=self.get_number(db))
+#        progress.set_pass(header=_("Applying ..."), total=self.get_number(db))
+        progress.set_pass(header=_("Applying ..."), total=100)
 
     # test each value in possible_handles to compute the final_list
     final_list = []
-    for handle in possible_handles:
+    N = len(possible_handles) // 100
+    if N == 0: N = 1    
+    for n, handle in enumerate(possible_handles):
         if handles_in is not None and handle not in handles_in:
             continue
         if handles_out is not None and handle in handles_out:
             continue
 
-        if user:
+        if user and n % N == 0:
             if progress.step():
                 break
+        n += 1
 
         obj = self.get_object(db, handle)
 
