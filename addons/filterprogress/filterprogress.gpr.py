@@ -178,6 +178,7 @@ def new_apply_logical_op_to_all(
     apply_logical_op,
     user=None,
 ):
+    from gramps.version import VERSION_TUPLE
     import logging
     from gramps.gen.filters.optimizer import Optimizer
     from gramps.gui.utils import ProgressMeter
@@ -189,7 +190,10 @@ def new_apply_logical_op_to_all(
     )
 
     # use the Optimizer to refine the set of possible_handles
-    optimizer = Optimizer()
+    if VERSION_TUPLE >= (6, 0, 4):
+        optimizer = Optimizer(self)
+    else:
+        optimizer = Optimizer()
     handles_in, handles_out = optimizer.compute_potential_handles_for_filter(self)
 
     # LOG.debug(
@@ -276,4 +280,4 @@ if VERSION_TUPLE >= (6, 0, 2):
 #         if user:
 #             user.end_progress()
 # 
-#         return final_list
+#         return final_list 
