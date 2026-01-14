@@ -49,6 +49,7 @@ class Notes(Gramplet):
     """
 
     def init(self):
+        self.note_list = None
         self.gui.WIDGET = self.build_gui()
         self.gui.get_container_widget().remove(self.gui.textview)
         self.gui.get_container_widget().add(self.gui.WIDGET)
@@ -76,6 +77,7 @@ class Notes(Gramplet):
         self.edit = Gtk.Button(_("Edit"))
         hbox.pack_start(self.edit, False, False, 0)
         self.edit.connect("clicked", self.edit_clicked)
+        self.edit.set_sensitive(False)
 
         scrolledwindow = Gtk.ScrolledWindow()
         scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -109,6 +111,7 @@ class Notes(Gramplet):
             self.display_note()
         else:
             self.set_has_data(False)
+        self.edit.set_sensitive(True)
 
     def clear_text(self):
         self.left.set_sensitive(False)
