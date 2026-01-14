@@ -31,7 +31,7 @@ namespaces = [
     "Source",
     "Repository",
     "Media",
-    "Note",
+#   "Note",
 ]
 
 for namespace in namespaces:
