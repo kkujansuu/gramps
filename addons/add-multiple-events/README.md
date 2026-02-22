@@ -5,6 +5,10 @@ August 2023<br>
 
 This addon helps in adding an event to several family members at the same time.
 
+**NOTE**. The Events & Citations gramplet (https://github.com/kkujansuu/gramps/tree/master/addons/events_and_citations) contains a similar functionality ("copy an event to other family members") that is possibly better/easier to use than this addon.
+  
+  
+  
 The addon uses the "Quick view" feature for people and families: for example, if you right-click a family and select "Quick View" you get a small popup menu containing a couple of choices. The addon adds a new choice "Add multiple events" to the popup menu. Choosing that will open a dialog allowing you to select an existing event or create a new one. You can specify the family members the event should be added to.
 
 See the following screenshots.
