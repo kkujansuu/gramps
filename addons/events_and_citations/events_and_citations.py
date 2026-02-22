@@ -61,7 +61,7 @@ from gramps.gui.dbguielement import DbGUIElement
 from gui.display import display_url
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.display.place import displayer as place_displayer
-from gramps.gen.datehandler import get_date
+from gramps.gen.datehandler import get_date, displayer as date_displayer
 from gramps.gen.utils.db import (get_participant_from_event,
                                  get_birth_or_fallback)
 from gramps.gen.db import DbTxn
@@ -329,7 +329,7 @@ class Events_and_Citations(Gramplet, DbGUIElement):
             if citation.date.is_empty():
                 citation_date = ""
             else:
-                citation_date = str(citation.date)
+                citation_date = date_displayer.display(citation.date)
             self.model.add([
                 "citation",
                 citation_handle,
