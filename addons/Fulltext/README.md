@@ -1,6 +1,6 @@
 # Full text search
-v0.9.3<br>
-24 Feb 2025<br>
+v0.9.5<br>
+27 Feb 2026<br>
 Author: kari.kujansuu@gmail.com<br>
 
     This addon should support both Gramps 5.x and Gramps 6.0.
