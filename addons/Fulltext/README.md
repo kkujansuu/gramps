@@ -76,7 +76,11 @@ You can restrict the search by object type or limit the number of search results
 
 The result list shows fragments of the matching text, for example not the complete note text. The matching words are displayed in red. 
 
-The list can be sorted by clicking the headers. Double clicking a row opens the corresponding editor, for example:
+The list can be sorted by clicking the headers. 
+
+Right-clicking a row displays a context menu with an "Activate" command. This will make the selected object active so that e.g. the Person list view is scrolled to the active person. This works in all categories.
+
+Double clicking a row opens the corresponding editor, for example:
 
 ![Fulltext](images/Fulltext-editor.png)
 

@@ -234,8 +234,18 @@ class Tool(tool.Tool):
         if event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             self.dosearch(None)
 
+    def _select_row_at_coords(self, x, y):
+        """
+        Select the row at the current cursor position.
+        """
+        wx, wy = self.listview.convert_bin_window_to_widget_coords(x, y)
+        row = self.listview.get_dest_row_at_pos(wx, wy)
+        if row:
+            self.listview.get_selection().select_path(row[0])
+
     def button_press(self, _treeview, event):
         # type: (Gtk.TreeView, Gtk.Event) -> bool
+        self._select_row_at_coords(event.x, event.y)
         if not self.db.db_is_open:
             return True
         try:  # may fail if clicked too frequently
@@ -250,8 +260,54 @@ class Tool(tool.Tool):
                 return True
         except:
             traceback.print_exc()
+
+        if self.is_right_click(event):  # popup menu code copied from embeddedlists.py
+            model, treeiter = self.listview.get_selection().get_selected()
+            if treeiter is None:
+                return  # list is empty
+            row = list(model[treeiter])
+            namespace = row[-2].capitalize()
+            obj = row[-1]
+            self.right_click(obj, namespace, event)
+            return True
+
+    def is_right_click(self, event):
+        """
+        Returns True if the event is to open the context menu.
+        """
+        from gi.repository import Gdk
+
+        if Gdk.Event.triggers_context_menu(event):
+            return True            
         return False
 
+    def right_click(self, obj, namespace, event):
+        """
+        On right click show a popup menu.
+        """
+        self.__store_menu = Gtk.Menu()  # need to keep reference or menu disappears
+        menu = self.__store_menu
+        menu.set_reserve_toggle_size(False)
+
+        item = Gtk.MenuItem.new_with_mnemonic("Activate")
+        item.connect(
+            "activate",
+            lambda _menuitem: self.uistate.set_active(obj.handle, namespace),
+        )
+        menu.append(item)
+        item.show()
+
+        # item = Gtk.MenuItem.new_with_mnemonic("Copy to clipboard")
+        # item.connect(
+        #     "activate",
+        #     lambda _menuitem: self.copy_to_clipboard(obj.handle, namespace),
+        # )
+        # menu.append(item)
+        # item.show()
+
+        menu.popup_at_pointer(event)
+        return True
+    
 
     def do_delete_index(self, _widget):
         self.msg.set_text("")
@@ -438,7 +494,7 @@ class SearchEngine:
                 hltext = (hltext.replace(ColorFormatter.PREFIX1, ColorFormatter.PREFIX2)
                           .replace(ColorFormatter.SUFFIX1, ColorFormatter.SUFFIX2)) 
 
-                rows.append([proxy.gramps_id, objtype+"."+contenttype, hltext, handle])
+                rows.append([proxy.gramps_id, objtype+"."+contenttype, hltext, handle, objtype, proxy.obj])
                 n += 1
             t2 = time.time()
             return rows, t2-t1
