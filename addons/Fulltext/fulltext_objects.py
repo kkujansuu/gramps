@@ -89,6 +89,10 @@ class ProxyBase:
                 name = url.path
             yield ("url", name)
 
+    def process_addresses(self):
+        for addr in self.obj.get_address_list():
+            name = ":".join(addr.get_text_data_list())
+            yield ("address",  name)
 
 class NoteProxy(ProxyBase):
     def __init__(self):
@@ -144,6 +148,7 @@ class PersonProxy(ProxyBase ):
 
         yield from self.process_attributes()
         yield from self.process_urls()         
+        yield from self.process_addresses()         
 
     def from_handle(self, db, handle):
         self.obj = db.get_person_from_handle(handle)
@@ -263,6 +268,7 @@ class RepositoryProxy(ProxyBase):
     def content(self):
         yield ("name", self.obj.get_name())
         yield from self.process_urls()         
+        yield from self.process_addresses()         
 
     def from_handle(self, db, handle):
         self.obj = db.get_repository_from_handle(handle)
