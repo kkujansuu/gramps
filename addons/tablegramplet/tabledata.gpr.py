@@ -2,7 +2,7 @@
 #
 # Gramps - a GTK+/GNOME based genealogy program
 #
-# Copyright (C) 2024  Kari Kujansuu
+# Copyright (C)  2026  Kari Kujansuu
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@ Installation
 ------------
 Copy the whole TableData/ folder into your Gramps user plugins directory:
 
-  Linux / macOS : ~/.gramps/gramps52/plugins/TableData/
-  Windows       : %APPDATA%\gramps\gramps52\plugins\TableData\
+  Linux / macOS : ~/.gramps/gramps<VER>/plugins/TableData/
+  Windows       : %APPDATA%\gramps\gramps<VER>\plugins\TableData\
 
 The folder must contain all tabledata_*.py files and this .gpr.py file.
 
@@ -37,6 +37,8 @@ The column schema is shared across all objects of the same type.
 Each object stores its own independent set of rows, keyed by its Gramps handle.
 """
 
+from gramps.version import major_version
+
 register(
     GRAMPLET,
     id              = "TableDataPerson",
@@ -45,7 +47,7 @@ register(
                         "across all Person objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_person.py",
     gramplet        = "TableDataPerson",
@@ -65,7 +67,7 @@ register(
                         "across all Family objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_family.py",
     gramplet        = "TableDataFamily",
@@ -85,7 +87,7 @@ register(
                         "across all Event objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_event.py",
     gramplet        = "TableDataEvent",
@@ -105,7 +107,7 @@ register(
                         "across all Place objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_place.py",
     gramplet        = "TableDataPlace",
@@ -125,7 +127,7 @@ register(
                         "across all Source objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_source.py",
     gramplet        = "TableDataSource",
@@ -145,7 +147,7 @@ register(
                         "across all Citation objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_citation.py",
     gramplet        = "TableDataCitation",
@@ -165,7 +167,7 @@ register(
                         "across all Repository objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_repository.py",
     gramplet        = "TableDataRepository",
@@ -185,7 +187,7 @@ register(
                         "across all Media objects; rows are stored per "
                         "object. Click a column header to sort."),
     version         = "1.0.0",
-    gramps_target_version = "5.2",
+    gramps_target_version = major_version,
     status          = STABLE,
     fname           = "tabledata_media.py",
     gramplet        = "TableDataMedia",
