@@ -216,6 +216,11 @@ def match_kansalliskirjasto2(line):
     # https://digi.kansalliskirjasto.fi/sanomalehti/binding/1340877?page=4
     # Kansalliskirjaston Digitoidut aineistot
 
+    # Tampereen osoite-, kauppa- ja ammattikalenteri, 01.08.1910, nro 1910, s. 1
+    # https://digi.kansalliskirjasto.fi/aikakausi/binding/1262801?page=1
+    # Kansalliskirjaston digitaaliset aineistot
+    # Viitattu:13.06.2026
+
     for reponame in [
         "Kansalliskirjaston Digitoidut aineistot",
         "Kansalliskirjaston digitaaliset aineistot",
@@ -235,8 +240,9 @@ def match_kansalliskirjasto2(line):
     i = line2.find(",")
     if i < 0:
         return None
-    sourcetitle = line2[:i].strip()
-    citationpage = line2[i + 1 :].strip()
+    parts  = line2.rsplit(",", maxsplit=3)
+    sourcetitle = parts[0]
+    citationpage = ", ".join(parts[1:])
     details = f"Kansalliskirjasto: {url}"
     return Match(line, reponame, sourcetitle, citationpage, details, url)
 
