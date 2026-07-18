@@ -297,6 +297,8 @@ class Events_and_Citations(Gramplet, DbGUIElement):
         else:
             obj = event_ref
 
+        self.sort_citations(obj)
+        
         for citation_handle in obj.get_citation_list():
             citation = self.dbstate.db.get_citation_from_handle(citation_handle)
             page = citation.get_page()
@@ -535,13 +537,23 @@ class Events_and_Citations(Gramplet, DbGUIElement):
                     citlist = parent.set_citation_list(citlist)
                 else:
                     parent.add_citation(citation_handle)
+                self.sort_citations(parent)
                 commitfunc(parent, trans)
         else:
             #print("append")
             pass
         return
     
-
+    def sort_citations(self, parent): # parent is Person or Event
+        citations = []
+        for cithandle in parent.get_citation_list():
+            cit = self.dbstate.db.get_citation_from_handle(cithandle)
+            source = self.dbstate.db.get_source_from_handle(cit.get_reference_handle())
+            sortkey = (source.get_title(), cit.get_page())
+            citations.append((sortkey, cithandle))
+        citations.sort()
+        parent.set_citation_list([cithandle for (sortkey, cithandle) in citations])
+    
     def merge_date_ranges(self, date1, date2):
         if date1.get_ymd() == (0, 0, 0): return date2
         if date2.get_ymd() == (0, 0, 0): return date1
