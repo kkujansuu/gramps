@@ -85,10 +85,10 @@ def db_changed(db):
         return
     indexdir = os.path.join(dbpath, dbid, "indexdir")
     if os.path.exists(indexdir):
-        print(indexdir, "exists", db.get_dbname())
+        # print(indexdir, "exists", db.get_dbname())
         enable_trace(db)
     else:
-        print(indexdir, "does not exist", db.get_dbname())
+        # print(indexdir, "does not exist", db.get_dbname())
         pass
 
 def enable_trace(db):
@@ -174,7 +174,7 @@ def callback(db, sqlstring):
         #    "parent_family_list":["OAAKQCZC8HVYD3C3JA"],"alternate_names":[],
         #    "person_ref_list":[],"death_ref_index":-1,
         #     "birth_ref_index":-1,"_class":"Person","gender":1}' 
-        print(sqlstring)
+        # print(sqlstring)
         objtype = sqlstring.split()[2]
         if objtype not in fulltext_objects.OBJTYPES:
             return
