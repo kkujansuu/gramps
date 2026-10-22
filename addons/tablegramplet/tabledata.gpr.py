@@ -198,3 +198,117 @@ register(
     detached_height = 400,
     navtypes        = ["Media"],
 )
+
+# ---------------------------------------------------------------------------
+# Filter rules — one per object type
+# ---------------------------------------------------------------------------
+# Parameters presented to the user in the filter editor:
+#   [0] Table name       – name of the TableData table to search
+#   [1] Column name      – column to search (leave empty to search all columns)
+#   [2] Value            – value to find   (leave empty to match any value)
+#   [3] Match type       – contains | equals | starts with | ends with
+#   [4] Negate           – if checked, match objects that do NOT satisfy the rule
+
+register(
+    RULE,
+    id          = "TableDataRulePerson",
+    name        = _("Person has TableData value"),
+    description = _("Matches people whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRulePerson",
+    namespace   = "Person",
+)
+
+register(
+    RULE,
+    id          = "TableDataRuleFamily",
+    name        = _("Family has TableData value"),
+    description = _("Matches families whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRuleFamily",
+    namespace   = "Family",
+)
+
+register(
+    RULE,
+    id          = "TableDataRuleEvent",
+    name        = _("Event has TableData value"),
+    description = _("Matches events whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRuleEvent",
+    namespace   = "Event",
+)
+
+register(
+    RULE,
+    id          = "TableDataRulePlace",
+    name        = _("Place has TableData value"),
+    description = _("Matches places whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRulePlace",
+    namespace   = "Place",
+)
+
+register(
+    RULE,
+    id          = "TableDataRuleSource",
+    name        = _("Source has TableData value"),
+    description = _("Matches sources whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRuleSource",
+    namespace   = "Source",
+)
+
+register(
+    RULE,
+    id          = "TableDataRuleCitation",
+    name        = _("Citation has TableData value"),
+    description = _("Matches citations whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRuleCitation",
+    namespace   = "Citation",
+)
+
+register(
+    RULE,
+    id          = "TableDataRuleRepository",
+    name        = _("Repository has TableData value"),
+    description = _("Matches repositories whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRuleRepository",
+    namespace   = "Repository",
+)
+
+register(
+    RULE,
+    id          = "TableDataRuleMedia",
+    name        = _("Media object has TableData value"),
+    description = _("Matches media objects whose TableData rows contain a specified value"),
+    version     = "1.0.0",
+    gramps_target_version = major_version,
+    status      = STABLE,
+    fname       = "tabledata_rule.py",
+    ruleclass   = "TableDataRuleMedia",
+    namespace   = "Media",
+)

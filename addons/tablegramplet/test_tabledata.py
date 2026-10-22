@@ -77,11 +77,26 @@ def _build_stubs() -> None:
 
     # ── gramps stub ──────────────────────────────────────────────────────────
     for mod_name in ("gramps", "gramps.gen", "gramps.gen.plug",
-                     "gramps.gui", "gramps.gui.dialog"):
+                     "gramps.gui", "gramps.gui.dialog",
+                     "gramps.gen.filters", "gramps.gen.filters.rules",
+                     "gramps.gen.const"):
         sys.modules.setdefault(mod_name, types.ModuleType(mod_name))
 
     sys.modules["gramps.gen.plug"].Gramplet = object          # type: ignore[attr-defined]
     sys.modules["gramps.gui.dialog"].OkDialog = MagicMock()   # type: ignore[attr-defined]
+    sys.modules["gramps.gen.filters.rules"].Rule = object     # type: ignore[attr-defined]
+
+    # GRAMPS_LOCALE stub for tabledata_rule.py
+    class _FakeLocale:
+        def get_addon_translator(self, *a, **kw):
+            raise ValueError("no addon translator in test")
+        @property
+        def translation(self):
+            return self
+        def gettext(self, s):
+            return s
+
+    sys.modules["gramps.gen.const"].GRAMPS_LOCALE = _FakeLocale()  # type: ignore[attr-defined]
 
 
 _build_stubs()
@@ -960,3 +975,290 @@ class TestDBPurgeOrphanedRows:
         rows = db.get_rows(tid, "h1", cols)
         assert len(rows) == 1
         assert rows[0]["values"][0] == "Alice"
+
+
+# ---------------------------------------------------------------------------
+# Filter rule tests  (tabledata_rule.py)
+# ---------------------------------------------------------------------------
+# The rule classes subclass gramps.gen.filters.rules.Rule which is stubbed
+# as `object`, so we can instantiate them and test prepare()/apply() directly
+# without a running Gramps session.
+
+import importlib
+import types as _types
+
+import tabledata_rule as tr
+
+
+# ── helpers ─────────────────────────────────────────────────────────────────
+
+def _make_rule(cls, table="", column="", value="",
+               match_type="contains", negate="0"):
+    rule = object.__new__(cls)
+    rule.list = [table, column, value, match_type, negate]
+    return rule
+
+
+class _FakeObj:
+    def __init__(self, handle: str):
+        self._handle = handle
+    def get_handle(self) -> str:
+        return self._handle
+
+
+class _FakeDb:
+    """Minimal DB stub that serves a real tabledata.db via tmp_path."""
+    def __init__(self, db_path: str, handles: list[str]):
+        self._path = db_path
+        self._handles = handles
+
+    def get_save_path(self) -> str:
+        return str(Path(self._path).parent)
+
+    def iter_person_handles(self):
+        return iter(self._handles)
+
+    # Other iter_* methods forward to the same list for simplicity
+    def iter_family_handles(self):     return iter(self._handles)
+    def iter_event_handles(self):      return iter(self._handles)
+    def iter_place_handles(self):      return iter(self._handles)
+    def iter_source_handles(self):     return iter(self._handles)
+    def iter_citation_handles(self):   return iter(self._handles)
+    def iter_repository_handles(self): return iter(self._handles)
+    def iter_media_handles(self):      return iter(self._handles)
+
+
+def _make_db_with_data(tmp_path: Path) -> tuple[str, _FakeDb]:
+    """
+    Create a tabledata.db with predictable data and return
+    (db_path, fake_gramps_db).
+    Schema:
+      tables:  id=1, object_type='Person', name='Measurements'
+      columns: (1, 0, 'Height', 'Number'), (1, 1, 'Note', 'String')
+      rows for 'h_alice': [('170', 'tall')]
+      rows for 'h_bob':   [('160', 'short')]
+      rows for 'h_carol': [('170', 'average')]
+    """
+    db_path = str(tmp_path / "tabledata.db")
+    con = sqlite3.connect(db_path)
+    con.executescript("""
+        CREATE TABLE tables (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            object_type TEXT NOT NULL,
+            tab_order   INTEGER NOT NULL DEFAULT 0,
+            name        TEXT NOT NULL
+        );
+        CREATE TABLE columns (
+            table_id  INTEGER NOT NULL,
+            col_order INTEGER NOT NULL,
+            name      TEXT NOT NULL,
+            col_type  TEXT NOT NULL DEFAULT 'String',
+            PRIMARY KEY (table_id, col_order)
+        );
+        CREATE TABLE rows (
+            table_id      INTEGER NOT NULL,
+            object_handle TEXT NOT NULL,
+            row_order     INTEGER NOT NULL,
+            col_order     INTEGER NOT NULL,
+            value         TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (table_id, object_handle, row_order, col_order)
+        );
+    """)
+    con.execute("INSERT INTO tables VALUES (1,'Person',0,'Measurements')")
+    con.execute("INSERT INTO tables VALUES (2,'Person',1,'Links')")
+    con.executemany(
+        "INSERT INTO columns VALUES (?,?,?,?)", [
+            (1, 0, 'Height', 'Number'),
+            (1, 1, 'Note',   'String'),
+            (2, 0, 'URL',    'URL'),
+        ])
+    con.executemany(
+        "INSERT INTO rows VALUES (?,?,?,?,?)", [
+            (1, 'h_alice', 0, 0, '170'),
+            (1, 'h_alice', 0, 1, 'tall'),
+            (1, 'h_bob',   0, 0, '160'),
+            (1, 'h_bob',   0, 1, 'short'),
+            (1, 'h_carol', 0, 0, '170'),
+            (1, 'h_carol', 0, 1, 'average'),
+            (2, 'h_alice', 0, 0, 'https://example.com'),
+        ])
+    con.commit()
+    con.close()
+
+    all_handles = ['h_alice', 'h_bob', 'h_carol', 'h_other']
+    fake_db = _FakeDb(db_path, all_handles)
+    return db_path, fake_db
+
+
+# ── _match_value ─────────────────────────────────────────────────────────────
+
+class TestMatchValue:
+
+    def test_contains_true(self):
+        assert tr._match_value("hello world", "world", "contains")
+
+    def test_contains_false(self):
+        assert not tr._match_value("hello world", "xyz", "contains")
+
+    def test_contains_case_insensitive(self):
+        assert tr._match_value("Hello World", "WORLD", "contains")
+
+    def test_equals_true(self):
+        assert tr._match_value("170", "170", "equals")
+
+    def test_equals_false(self):
+        assert not tr._match_value("170", "17", "equals")
+
+    def test_starts_with(self):
+        assert tr._match_value("https://example.com", "https", "starts with")
+        assert not tr._match_value("https://example.com", "http:", "starts with")
+
+    def test_ends_with(self):
+        assert tr._match_value("example.com", ".com", "ends with")
+        assert not tr._match_value("example.com", ".org", "ends with")
+
+    def test_unknown_match_type_falls_back_to_contains(self):
+        # _match_value default branch is "contains"
+        assert tr._match_value("hello", "ell", "bogus_type")
+
+
+# ── rule prepare / apply ─────────────────────────────────────────────────────
+
+class TestRulePrepare:
+
+    def test_no_db_file_produces_empty_set(self, tmp_path: Path):
+        fake_db = _FakeDb(str(tmp_path / "tabledata.db"), [])
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", value="170")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == set()
+
+    def test_matches_by_value(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", value="170")
+        rule.prepare(fake_db, None)
+        assert "h_alice" in rule._matching_handles
+        assert "h_carol" in rule._matching_handles
+        assert "h_bob"   not in rule._matching_handles
+
+    def test_matches_by_column_and_value(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="Note", value="short")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == {"h_bob"}
+
+    def test_empty_value_matches_all_with_rows(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson, table="Measurements", value="")
+        rule.prepare(fake_db, None)
+        # All three persons have rows in Measurements
+        assert {"h_alice", "h_bob", "h_carol"} <= rule._matching_handles
+        # h_other has no rows
+        assert "h_other" not in rule._matching_handles
+
+    def test_empty_table_searches_all_tables(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        # h_alice has a row in 'Links' table too
+        rule = _make_rule(tr.TableDataRulePerson, table="", value="https")
+        rule.prepare(fake_db, None)
+        assert "h_alice" in rule._matching_handles
+
+    def test_unknown_table_produces_empty_set(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="NoSuchTable", value="170")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == set()
+
+    def test_unknown_column_produces_empty_set(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="NoSuchCol", value="x")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == set()
+
+    def test_match_type_equals(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="Height",
+                          value="170", match_type="equals")
+        rule.prepare(fake_db, None)
+        assert "h_alice" in rule._matching_handles
+        assert "h_carol" in rule._matching_handles
+        assert "h_bob"   not in rule._matching_handles
+
+    def test_match_type_starts_with(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="Note",
+                          value="tall", match_type="starts with")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == {"h_alice"}
+
+    def test_match_type_ends_with(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="Note",
+                          value="ort", match_type="ends with")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == {"h_bob"}
+
+    def test_case_insensitive_table_name(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="MEASUREMENTS", value="170")
+        rule.prepare(fake_db, None)
+        assert "h_alice" in rule._matching_handles
+
+    def test_case_insensitive_column_name(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="HEIGHT", value="160")
+        rule.prepare(fake_db, None)
+        assert rule._matching_handles == {"h_bob"}
+
+    def test_negate(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="Height",
+                          value="170", match_type="equals", negate="1")
+        rule.prepare(fake_db, None)
+        # Should include h_bob (height 160) and h_other (no rows at all)
+        assert "h_bob"   in rule._matching_handles
+        assert "h_other" in rule._matching_handles
+        assert "h_alice" not in rule._matching_handles
+        assert "h_carol" not in rule._matching_handles
+
+    def test_invalid_match_type_defaults_to_contains(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", column="Note",
+                          value="tall", match_type="BOGUS")
+        rule.prepare(fake_db, None)
+        assert "h_alice" in rule._matching_handles
+
+
+class TestRuleApply:
+
+    def test_apply_returns_true_for_match(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", value="170")
+        rule.prepare(fake_db, None)
+        assert rule.apply(fake_db, _FakeObj("h_alice")) is True
+
+    def test_apply_returns_false_for_no_match(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", value="170")
+        rule.prepare(fake_db, None)
+        assert rule.apply(fake_db, _FakeObj("h_bob")) is False
+
+    def test_apply_returns_false_for_unknown_handle(self, tmp_path: Path):
+        _, fake_db = _make_db_with_data(tmp_path)
+        rule = _make_rule(tr.TableDataRulePerson,
+                          table="Measurements", value="170")
+        rule.prepare(fake_db, None)
+        assert rule.apply(fake_db, _FakeObj("h_unknown")) is False
