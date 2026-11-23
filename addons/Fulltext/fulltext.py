@@ -23,6 +23,7 @@
 dbtrace_version = 1
 
 import html
+import json
 import os
 import re
 import shutil
@@ -65,6 +66,7 @@ _ = _trans.gettext
 fulltext_config = configman.register_manager("fulltext")
 
 fulltext_config.register("defaults.querytext", "")
+fulltext_config.register("defaults.active-objtypes", "")
 
 class ColorFormatter(whoosh.highlight.Formatter):
     """
@@ -152,6 +154,12 @@ class Tool(tool.Tool):
 
         self.dbstate.connect("database-changed", self.db_changed)
 
+        fulltext_config.load()
+        lastquery = fulltext_config.get("defaults.querytext")
+        active_objtypes = fulltext_config.get("defaults.active-objtypes")
+
+        self.query_field.set_text(lastquery)
+
         cb = Gtk.CheckButton(label="All")
         cb.set_active(True)
         self.object_types.add(cb)
@@ -161,14 +169,12 @@ class Tool(tool.Tool):
         self.checkboxes = {}
         for col, objtype in enumerate(sorted(fulltext_objects.OBJTYPES), start=1):
             cb = Gtk.CheckButton(label=objtype)
-            cb.set_active(True)
+            if active_objtypes == "" or objtype in json.loads(active_objtypes):
+                cb.set_active(True)
             self.object_types.add(cb)
             self.checkboxes[objtype] = cb
         self.object_types.show_all()
             
-        fulltext_config.load()
-        lastquery = fulltext_config.get("defaults.querytext")
-        self.query_field.set_text(lastquery)
 
         ret = self.engine.init_fulltext()
         if ret == self.engine.ERR_DB_NOT_OPEN:            
@@ -338,13 +344,18 @@ class Tool(tool.Tool):
     def dosearch(self, _widget):
         query_text = self.query_field.get_text().strip()
         if query_text:
-            fulltext_config.set("defaults.querytext", query_text)
-            fulltext_config.save()
 
             types = []
+            active_objects = []
             for objtype, cb in self.checkboxes.items():
                 if cb.get_active():
                     types.append("objtype:"+objtype)
+                    active_objects.append(objtype)
+
+            fulltext_config.set("defaults.querytext", query_text)
+            fulltext_config.set("defaults.active-objtypes", json.dumps(active_objects))
+            fulltext_config.save()
+            
             if types and len(types) < len(self.checkboxes):
                 s = " (" + " OR ".join(types) + ")"
             else:
